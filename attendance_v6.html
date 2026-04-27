@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>현장 출근기록</title>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js" onerror="window.__jsQRFailed=true"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" onerror="window.__xlsxFailed=true"></script>
+<style>
+/* ⚡ ELECTRIC THEME - 일렉트릭 옐로 + 다크 네이비 */
+:root {
+  --navy-900: #0F172A;
+  --navy-800: #1E293B;
+  --navy-700: #334155;
+  --navy-600: #475569;
+  --yellow-400: #FACC15;
+  --yellow-500: #EAB308;
+  --yellow-300: #FDE047;
+  --yellow-bg: #FEFCE8;
+  --gray-50: #F8FAFC;
+  --gray-100: #F1F5F9;
+  --gray-200: #E2E8F0;
+  --gray-300: #CBD5E1;
+  --gray-500: #64748B;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Pretendard', 'Malgun Gothic', sans-serif; background: var(--gray-50); color: var(--navy-900); min-height: 100vh; padding-bottom: 40px; }
+
+/* === 헤더 === */
+.header { background: linear-gradient(135deg, var(--navy-900) 0%, var(--navy-800) 100%); color: white; padding: 14px 16px; box-shadow: 0 4px 12px rgba(15,23,42,0.15); position: sticky; top: 0; z-index: 100; border-bottom: 3px solid var(--yellow-400); }
+.header-inner { max-width: 800px; margin: 0 auto; display: flex; align-items: center; gap: 12px; }
+.logo-slot { width: 40px; height: 40px; background: var(--yellow-400); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; box-shadow: 0 0 12px rgba(250,204,21,0.4); overflow: hidden; }
+.logo-slot img { width: 100%; height: 100%; object-fit: contain; }
+.header-text { flex: 1; min-width: 0; }
+.header h1 { font-size: 16px; font-weight: 800; letter-spacing: -0.3px; line-height: 1.2; }
+.header-sub { font-size: 11px; color: var(--yellow-400); font-weight: 600; letter-spacing: 0.5px; margin-top: 1px; }
+.mode-toggle { background: rgba(250,204,21,0.15); padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; border: 1px solid rgba(250,204,21,0.3); color: var(--yellow-300); font-weight: 600; transition: all 0.2s; }
+.mode-toggle:hover { background: rgba(250,204,21,0.25); }
+
+/* === 메인 === */
+.main { max-width: 800px; margin: 0 auto; padding: 16px; }
+.card { background: white; border-radius: 14px; padding: 20px; border: 1px solid var(--gray-200); margin-bottom: 14px; box-shadow: 0 1px 3px rgba(15,23,42,0.04), 0 0 0 1px rgba(15,23,42,0.02); transition: box-shadow 0.2s; }
+.card:hover { box-shadow: 0 4px 16px rgba(15,23,42,0.06); }
+.card h2 { font-size: 16px; font-weight: 800; margin-bottom: 16px; color: var(--navy-900); letter-spacing: -0.3px; display: flex; align-items: center; gap: 6px; }
+.card h2::before { content: ''; width: 4px; height: 16px; background: var(--yellow-400); border-radius: 2px; }
+.card h3 { font-size: 14px; font-weight: 700; margin-bottom: 12px; color: var(--navy-800); }
+
+/* === 입력 필드 === */
+.field { margin-bottom: 14px; }
+.field label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--navy-700); letter-spacing: -0.2px; }
+.field input, .field select { width: 100%; padding: 11px 14px; border: 1.5px solid var(--gray-200); border-radius: 10px; font-size: 14px; font-family: inherit; background: white; transition: all 0.2s; color: var(--navy-900); }
+.field input:focus, .field select:focus { outline: none; border-color: var(--yellow-400); box-shadow: 0 0 0 3px rgba(250,204,21,0.15); }
+.field input::placeholder { color: var(--gray-300); }
+.field-hint { font-size: 11px; color: var(--gray-500); margin-top: 5px; line-height: 1.4; }
+
+/* === 버튼 === */
+.btn { width: 100%; padding: 13px; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.15s; letter-spacing: -0.2px; }
+.btn:active { transform: translateY(1px); }
+.btn-primary { background: var(--navy-900); color: var(--yellow-400); box-shadow: 0 2px 6px rgba(15,23,42,0.2); }
+.btn-primary:hover { background: var(--navy-800); }
+.btn-success { background: linear-gradient(135deg, var(--yellow-400) 0%, var(--yellow-500) 100%); color: var(--navy-900); box-shadow: 0 2px 8px rgba(234,179,8,0.3); }
+.btn-success:hover { box-shadow: 0 4px 12px rgba(234,179,8,0.4); }
+.btn-secondary { background: var(--navy-700); color: white; }
+.btn-secondary:hover { background: var(--navy-600); }
+.btn-danger { background: #dc2626; color: white; }
+.btn-light { background: var(--yellow-bg); color: var(--navy-900); padding: 9px 14px; font-size: 13px; border: 1px solid var(--yellow-300); }
+.btn-light:hover { background: #FEF9C3; }
+.btn-sm { padding: 7px 12px; font-size: 12px; width: auto; }
+.btn-big { padding: 22px; font-size: 17px; }
+.btn:disabled { background: var(--gray-200); color: var(--gray-500); cursor: not-allowed; box-shadow: none; }
+.btn-row { display: flex; gap: 8px; }
+.btn-row .btn { width: auto; flex: 1; }
+
+/* === 토글 그룹 === */
+.toggle-group { display: flex; gap: 8px; }
+.toggle-group button { flex: 1; padding: 11px; border: 1.5px solid var(--gray-200); border-radius: 10px; background: white; cursor: pointer; font-weight: 600; font-size: 14px; color: var(--navy-700); transition: all 0.15s; }
+.toggle-group button.active { background: var(--navy-900); color: var(--yellow-400); border-color: var(--navy-900); }
+
+/* === 그리드 === */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.grid-4 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+@media (min-width: 640px) { .grid-4 { grid-template-columns: repeat(4, 1fr); } }
+
+/* === 통계 카드 === */
+.stat { background: linear-gradient(135deg, var(--gray-50) 0%, white 100%); padding: 16px; border-radius: 12px; border: 1px solid var(--gray-200); position: relative; overflow: hidden; }
+.stat::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--yellow-400); }
+.stat-value { font-size: 26px; font-weight: 800; color: var(--navy-900); letter-spacing: -1px; }
+.stat-label { font-size: 11px; color: var(--gray-500); margin-top: 4px; font-weight: 600; letter-spacing: -0.2px; }
+
+/* === 알림/배너 === */
+.alert { padding: 14px; border-radius: 10px; font-size: 13px; margin-bottom: 14px; line-height: 1.5; }
+.alert-info { background: var(--yellow-bg); color: var(--navy-900); border: 1px solid var(--yellow-300); }
+.alert-warn { background: #FEF3C7; color: #92400E; border: 1px solid #FDE68A; }
+.alert-success { background: #DCFCE7; color: #166534; border: 1px solid #BBF7D0; }
+
+/* === 토스트 === */
+.toast { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); padding: 13px 22px; border-radius: 12px; color: white; box-shadow: 0 8px 24px rgba(15,23,42,0.25); z-index: 200; max-width: 400px; font-size: 14px; font-weight: 600; animation: slideDown 0.25s ease-out; }
+@keyframes slideDown { from { opacity: 0; transform: translate(-50%, -10px); } to { opacity: 1; transform: translateX(-50%); } }
+.toast-success { background: linear-gradient(135deg, var(--yellow-400) 0%, var(--yellow-500) 100%); color: var(--navy-900); }
+.toast-error { background: #dc2626; }
+.toast-info { background: var(--navy-800); color: var(--yellow-400); }
+
+/* === 리스트 아이템 === */
+.list-item { background: var(--gray-50); padding: 13px 14px; border-radius: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--gray-200); transition: all 0.15s; }
+.list-item:hover { background: var(--yellow-bg); border-color: var(--yellow-300); }
+
+/* === 태그 === */
+.tag { display: inline-block; padding: 3px 9px; border-radius: 5px; font-size: 11px; font-weight: 700; margin-left: 4px; letter-spacing: -0.2px; }
+.tag-foreign { background: #FEF3C7; color: #92400E; }
+.tag-in { background: var(--yellow-400); color: var(--navy-900); }
+.tag-out { background: var(--navy-800); color: var(--yellow-400); }
+.tag-cross { background: #F3E8FF; color: #7E22CE; }
+
+/* === 모달 === */
+.modal-bg { position: fixed; inset: 0; background: rgba(15,23,42,0.6); backdrop-filter: blur(4px); z-index: 300; display: flex; align-items: center; justify-content: center; padding: 16px; animation: fadeIn 0.2s; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.modal { background: white; border-radius: 16px; padding: 24px; max-width: 420px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(15,23,42,0.3); border-top: 4px solid var(--yellow-400); }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.modal-close { background: var(--gray-100); border: none; cursor: pointer; font-size: 18px; color: var(--navy-700); width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+.modal-close:hover { background: var(--gray-200); }
+
+/* === QR 표시 === */
+.qr-display { display: flex; justify-content: center; padding: 20px; background: white; border: 2px solid var(--navy-900); border-radius: 12px; }
+
+/* === 스캐너 === */
+.scanner-overlay { position: fixed; inset: 0; background: var(--navy-900); z-index: 400; display: flex; flex-direction: column; }
+.scanner-header { background: linear-gradient(180deg, rgba(15,23,42,0.95) 0%, rgba(15,23,42,0.7) 100%); color: white; padding: 16px; display: flex; justify-content: space-between; align-items: center; }
+.scanner-header span { color: var(--yellow-400); font-weight: 700; }
+.scanner-body { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.scanner-body video { max-width: 100%; max-height: 100%; }
+.scanner-frame { position: absolute; width: 260px; height: 260px; border: 4px solid var(--yellow-400); border-radius: 16px; box-shadow: 0 0 0 9999px rgba(15,23,42,0.5), 0 0 30px rgba(250,204,21,0.5); animation: pulse 2s infinite; }
+@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 9999px rgba(15,23,42,0.5), 0 0 30px rgba(250,204,21,0.5); } 50% { box-shadow: 0 0 0 9999px rgba(15,23,42,0.5), 0 0 50px rgba(250,204,21,0.8); } }
+.scanner-hint { position: absolute; bottom: 40px; left: 0; right: 0; text-align: center; color: white; font-size: 14px; padding: 0 16px; font-weight: 500; }
+
+/* === 프로필 카드 === */
+.profile-card { background: linear-gradient(135deg, var(--navy-900) 0%, var(--navy-800) 100%); color: white; padding: 22px; border-radius: 14px; margin-bottom: 16px; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(15,23,42,0.2); }
+.profile-card::before { content: ''; position: absolute; top: -30px; right: -30px; width: 120px; height: 120px; background: radial-gradient(circle, rgba(250,204,21,0.2) 0%, transparent 70%); }
+.profile-card::after { content: '⚡'; position: absolute; bottom: -10px; right: 10px; font-size: 80px; opacity: 0.08; transform: rotate(15deg); }
+.profile-name { font-size: 22px; font-weight: 800; margin-bottom: 4px; letter-spacing: -0.5px; position: relative; z-index: 1; }
+.profile-info { font-size: 13px; opacity: 0.9; position: relative; z-index: 1; line-height: 1.6; color: var(--yellow-300); }
+
+/* === 큰 액션 버튼 (출근하기) === */
+.big-action { background: linear-gradient(135deg, var(--yellow-400) 0%, var(--yellow-500) 100%); color: var(--navy-900); padding: 32px 24px; border-radius: 18px; text-align: center; cursor: pointer; box-shadow: 0 8px 20px rgba(234,179,8,0.35), inset 0 1px 0 rgba(255,255,255,0.4); border: none; width: 100%; font-size: 19px; font-weight: 800; margin-bottom: 16px; transition: all 0.2s; letter-spacing: -0.5px; position: relative; overflow: hidden; }
+.big-action::before { content: '⚡'; position: absolute; top: 50%; left: 20px; transform: translateY(-50%); font-size: 28px; opacity: 0.3; }
+.big-action::after { content: '⚡'; position: absolute; top: 50%; right: 20px; transform: translateY(-50%); font-size: 28px; opacity: 0.3; }
+.big-action:active { transform: scale(0.98); box-shadow: 0 4px 10px rgba(234,179,8,0.35); }
+.big-action:hover { box-shadow: 0 12px 28px rgba(234,179,8,0.45), inset 0 1px 0 rgba(255,255,255,0.4); }
+
+/* === 테이블 === */
+table { width: 100%; font-size: 13px; border-collapse: collapse; }
+table thead { background: var(--navy-900); }
+table thead th { color: var(--yellow-400); font-weight: 700; }
+table th, table td { padding: 10px 8px; text-align: left; border-bottom: 1px solid var(--gray-200); }
+table tbody tr:hover { background: var(--yellow-bg); }
+
+/* === 기타 === */
+ol { padding-left: 20px; }
+ol li { margin-bottom: 6px; font-size: 13px; line-height: 1.5; color: var(--navy-700); }
+
+/* === 푸터 === */
+.footer { text-align: center; padding: 24px 16px 8px; font-size: 11px; color: var(--gray-500); }
+.footer-brand { color: var(--navy-900); font-weight: 700; }
+.footer-brand .accent { color: var(--yellow-500); }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-inner">
+    <!-- 🔧 로고 자리: 아래 줄을 본인 회사 로고 이미지로 교체하세요 -->
+    <!-- 예시: <div class="logo-slot"><img src="logo.png" alt="로고"></div> -->
+    <div class="logo-slot">⚡</div>
+    <div class="header-text">
+      <h1 id="header-title">현장 출근기록</h1>
+      <div class="header-sub">ELECTRIC ATTENDANCE</div>
+    </div>
+    <button class="mode-toggle" onclick="App.toggleMode()" id="mode-btn">관리자</button>
+  </div>
+</div>
+<div id="toast-container"></div>
+<div class="main" id="main-content"></div>
+<div class="footer">
+  <div class="footer-brand">⚡ <span class="accent">현장 안전</span>은 정확한 기록에서 시작됩니다</div>
+</div>
+<script>
+
+
+
+const QRCodeGen = (() => {
+  const EXP_TABLE = new Array(256);
+  const LOG_TABLE = new Array(256);
+  let x = 1;
+  for (let i = 0; i < 8; i++) { EXP_TABLE[i] = x; x <<= 1; }
+  for (let i = 8; i < 256; i++) {
+    EXP_TABLE[i] = EXP_TABLE[i-4] ^ EXP_TABLE[i-5] ^ EXP_TABLE[i-6] ^ EXP_TABLE[i-8];
+  }
+  for (let i = 0; i < 255; i++) LOG_TABLE[EXP_TABLE[i]] = i;
+  const gexp = (n) => { while(n<0)n+=255; while(n>=256)n-=255; return EXP_TABLE[n]; };
+  const glog = (n) => LOG_TABLE[n];
+  const RS_BLOCKS_L = {
+    1: [[1, 26, 19]], 2: [[1, 44, 34]], 3: [[1, 70, 55]], 4: [[1, 100, 80]],
+    5: [[1, 134, 108]], 6: [[2, 86, 68]], 7: [[2, 98, 78]], 8: [[2, 121, 97]],
+    9: [[2, 146, 116]], 10: [[2, 86, 68], [2, 87, 69]],
+  };
+  const ALIGNMENT_POSITIONS = {
+    1: [], 2: [6, 18], 3: [6, 22], 4: [6, 26], 5: [6, 30],
+    6: [6, 34], 7: [6, 22, 38], 8: [6, 24, 42], 9: [6, 26, 46], 10: [6, 28, 50],
+  };
+  const G15 = (1<<10)|(1<<8)|(1<<5)|(1<<4)|(1<<2)|(1<<1)|(1<<0);
+  const G15_MASK = (1<<14)|(1<<12)|(1<<10)|(1<<4)|(1<<1);
+  const bchDigit = (data) => { let d = 0; while (data !== 0) { d++; data >>>= 1; } return d; };
+  const getBCHTypeInfo = (data) => {
+    let d = data << 10;
+    while (bchDigit(d) - bchDigit(G15) >= 0) d ^= (G15 << (bchDigit(d) - bchDigit(G15)));
+    return ((data << 10) | d) ^ G15_MASK;
+  };
+  class Polynomial {
+    constructor(num, shift = 0) {
+      let offset = 0;
+      while (offset < num.length && num[offset] === 0) offset++;
+      this.num = new Array(num.length - offset + shift);
+      for (let i = 0; i < num.length - offset; i++) this.num[i] = num[i + offset];
+    }
+    get(i) { return this.num[i]; }
+    getLength() { return this.num.length; }
+    multiply(e) {
+      const num = new Array(this.getLength() + e.getLength() - 1).fill(0);
+      for (let i = 0; i < this.getLength(); i++)
+        for (let j = 0; j < e.getLength(); j++)
+          num[i + j] ^= gexp(glog(this.get(i)) + glog(e.get(j)));
+      return new Polynomial(num);
+    }
+    mod(e) {
+      if (this.getLength() - e.getLength() < 0) return this;
+      const ratio = glog(this.get(0)) - glog(e.get(0));
+      const num = this.num.slice();
+      for (let i = 0; i < e.getLength(); i++) num[i] ^= gexp(glog(e.get(i)) + ratio);
+      return new Polynomial(num).mod(e);
+    }
+  }
+  const getECPoly = (ecLength) => {
+    let a = new Polynomial([1]);
+    for (let i = 0; i < ecLength; i++) a = a.multiply(new Polynomial([1, gexp(i)]));
+    return a;
+  };
+  class BitBuffer {
+    constructor() { this.buffer = []; this.length = 0; }
+    put(num, length) { for (let i = 0; i < length; i++) this.putBit(((num >>> (length - i - 1)) & 1) === 1); }
+    putBit(bit) {
+      const bufIdx = Math.floor(this.length / 8);
+      if (this.buffer.length <= bufIdx) this.buffer.push(0);
+      if (bit) this.buffer[bufIdx] |= (0x80 >>> (this.length % 8));
+      this.length++;
+    }
+  }
+  const MASK_FUNCS = [
+    (i,j) => (i+j)%2===0, (i,j) => i%2===0, (i,j) => j%3===0, (i,j) => (i+j)%3===0,
+    (i,j) => (Math.floor(i/2)+Math.floor(j/3))%2===0, (i,j) => (i*j)%2+(i*j)%3===0,
+    (i,j) => ((i*j)%2+(i*j)%3)%2===0, (i,j) => ((i*j)%3+(i+j)%2)%2===0,
+  ];
+  const getVersion = (dataLen) => {
+    for (let v = 1; v <= 10; v++) {
+      const lenBits = v < 10 ? 8 : 16;
+      const totalBits = 4 + lenBits + dataLen * 8;
+      const totalBytes = Math.ceil(totalBits / 8);
+      const capacity = RS_BLOCKS_L[v].reduce((s, [n,t,d]) => s + n * d, 0);
+      if (totalBytes <= capacity) return v;
+    }
+    throw new Error('Data too long');
+  };
+  const generate = (text) => {
+    const utf8 = [];
+    for (let i = 0; i < text.length; i++) {
+      let c = text.charCodeAt(i);
+      if (c < 0x80) utf8.push(c);
+      else if (c < 0x800) { utf8.push(0xc0|(c>>6)); utf8.push(0x80|(c&0x3f)); }
+      else { utf8.push(0xe0|(c>>12)); utf8.push(0x80|((c>>6)&0x3f)); utf8.push(0x80|(c&0x3f)); }
+    }
+    const version = getVersion(utf8.length);
+    const size = version * 4 + 17;
+    const buf = new BitBuffer();
+    buf.put(4, 4);
+    buf.put(utf8.length, version < 10 ? 8 : 16);
+    for (let i = 0; i < utf8.length; i++) buf.put(utf8[i], 8);
+    const totalDataBytes = RS_BLOCKS_L[version].reduce((s, [n,t,d]) => s + n * d, 0);
+    if (buf.length + 4 <= totalDataBytes * 8) buf.put(0, 4);
+    while (buf.length % 8 !== 0) buf.putBit(false);
+    const padBytes = [0xEC, 0x11];
+    let pi = 0;
+    while (buf.length / 8 < totalDataBytes) buf.put(padBytes[pi++ % 2], 8);
+    const blocks = RS_BLOCKS_L[version];
+    const dataBytes = buf.buffer.slice(0, totalDataBytes);
+    const totalCodewords = { 1:26, 2:44, 3:70, 4:100, 5:134, 6:172, 7:196, 8:242, 9:292, 10:346 }[version];
+    const numBlocks = blocks.reduce((s, [n]) => s + n, 0);
+    const ecPerBlock = Math.floor((totalCodewords - totalDataBytes) / numBlocks);
+    const blockData = []; const blockEc = []; let dataOffset = 0;
+    for (const [n, t, d] of blocks) {
+      for (let b = 0; b < n; b++) {
+        const data = dataBytes.slice(dataOffset, dataOffset + d);
+        dataOffset += d;
+        blockData.push(data);
+        const rsPoly = getECPoly(ecPerBlock);
+        const rawPoly = new Polynomial(data, ecPerBlock);
+        const modPoly = rawPoly.mod(rsPoly);
+        const ec = new Array(ecPerBlock);
+        for (let i = 0; i < ecPerBlock; i++) {
+          const idx = i + modPoly.getLength() - ecPerBlock;
+          ec[i] = idx >= 0 ? modPoly.get(idx) : 0;
+        }
+        blockEc.push(ec);
+      }
+    }
+    const finalBytes = [];
+    const maxData = Math.max(...blockData.map(b => b.length));
+    for (let i = 0; i < maxData; i++) for (const b of blockData) if (i < b.length) finalBytes.push(b[i]);
+    for (let i = 0; i < ecPerBlock; i++) for (const e of blockEc) finalBytes.push(e[i]);
+    const matrix = Array.from({length: size}, () => new Array(size).fill(null));
+    const setupPos = (row, col) => {
+      for (let r = -1; r <= 7; r++) for (let c = -1; c <= 7; c++) {
+        if (row+r < 0 || row+r >= size || col+c < 0 || col+c >= size) continue;
+        if ((r >= 0 && r <= 6 && (c === 0 || c === 6)) ||
+            (c >= 0 && c <= 6 && (r === 0 || r === 6)) ||
+            (r >= 2 && r <= 4 && c >= 2 && c <= 4)) matrix[row+r][col+c] = true;
+        else matrix[row+r][col+c] = false;
+      }
+    };
+    setupPos(0, 0); setupPos(0, size - 7); setupPos(size - 7, 0);
+    const positions = ALIGNMENT_POSITIONS[version];
+    for (const r of positions) for (const c of positions) {
+      if (matrix[r][c] !== null) continue;
+      for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++)
+        matrix[r+dr][c+dc] = (dr === -2 || dr === 2 || dc === -2 || dc === 2 || (dr === 0 && dc === 0));
+    }
+    for (let i = 8; i < size - 8; i++) {
+      if (matrix[i][6] === null) matrix[i][6] = i % 2 === 0;
+      if (matrix[6][i] === null) matrix[6][i] = i % 2 === 0;
+    }
+    for (let i = 0; i < 9; i++) {
+      if (matrix[8][i] === null) matrix[8][i] = false;
+      if (matrix[i][8] === null) matrix[i][8] = false;
+    }
+    for (let i = 0; i < 8; i++) {
+      if (matrix[size-1-i][8] === null) matrix[size-1-i][8] = false;
+      if (matrix[8][size-1-i] === null) matrix[8][size-1-i] = false;
+    }
+    matrix[size-8][8] = true;
+    let bitIdx = 0; let upward = true;
+    for (let col = size - 1; col > 0; col -= 2) {
+      if (col === 6) col--;
+      for (let i = 0; i < size; i++) {
+        const row = upward ? size - 1 - i : i;
+        for (let c = 0; c < 2; c++) {
+          if (matrix[row][col-c] === null) {
+            let bit = false;
+            if (bitIdx < finalBytes.length * 8) bit = ((finalBytes[bitIdx >>> 3] >>> (7 - (bitIdx & 7))) & 1) === 1;
+            matrix[row][col-c] = bit;
+            bitIdx++;
+          }
+        }
+      }
+      upward = !upward;
+    }
+    let bestMask = 0, bestScore = Infinity, bestMatrix = null;
+    for (let mask = 0; mask < 8; mask++) {
+      const m = matrix.map(row => row.slice());
+      const fnMatrix = Array.from({length: size}, () => new Array(size).fill(false));
+      for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) fnMatrix[r][c] = true;
+      for (let r = 0; r < 9; r++) for (let c = size-8; c < size; c++) fnMatrix[r][c] = true;
+      for (let r = size-8; r < size; r++) for (let c = 0; c < 9; c++) fnMatrix[r][c] = true;
+      for (let i = 0; i < size; i++) { fnMatrix[6][i] = true; fnMatrix[i][6] = true; }
+      for (const r of positions) for (const c of positions) {
+        for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++)
+          if (r+dr >= 0 && r+dr < size && c+dc >= 0 && c+dc < size) fnMatrix[r+dr][c+dc] = true;
+      }
+      for (let row = 0; row < size; row++) for (let col = 0; col < size; col++)
+        if (!fnMatrix[row][col] && MASK_FUNCS[mask](row, col)) m[row][col] = !m[row][col];
+      const formatBits = getBCHTypeInfo((1<<3) | mask);
+      for (let i = 0; i < 15; i++) {
+        const bit = ((formatBits >> i) & 1) === 1;
+        if (i < 6) m[i][8] = bit;
+        else if (i < 8) m[i+1][8] = bit;
+        else m[size-15+i][8] = bit;
+        if (i < 8) m[8][size-1-i] = bit;
+        else if (i < 9) m[8][15-i] = bit;
+        else m[8][14-i] = bit;
+      }
+      m[size-8][8] = true;
+      let score = 0;
+      for (let r = 0; r < size; r++) {
+        let runLen = 1;
+        for (let c = 1; c < size; c++) {
+          if (m[r][c] === m[r][c-1]) runLen++;
+          else { if (runLen >= 5) score += 3 + (runLen - 5); runLen = 1; }
+        }
+        if (runLen >= 5) score += 3 + (runLen - 5);
+      }
+      if (score < bestScore) { bestScore = score; bestMask = mask; bestMatrix = m; }
+    }
+    return { matrix: bestMatrix, size };
+  };
+  return { generate };
+})();
+
+const qrToSVG = (text, size = 250) => {
+  try {
+    const { matrix, size: gridSize } = QRCodeGen.generate(text);
+    const cellSize = size / (gridSize + 4);
+    const offset = 2 * cellSize;
+    let cells = '';
+    for (let r = 0; r < gridSize; r++) for (let c = 0; c < gridSize; c++) {
+      if (matrix[r][c]) cells += `<rect x="${(offset+c*cellSize).toFixed(2)}" y="${(offset+r*cellSize).toFixed(2)}" width="${cellSize.toFixed(2)}" height="${cellSize.toFixed(2)}"/>`;
+    }
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><rect width="${size}" height="${size}" fill="white"/><g fill="black">${cells}</g></svg>`;
+  } catch (e) { return null; }
+};
+
+
+
+const Store = {
+  get(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch { return null; } },
+  set(k, v) { localStorage.setItem(k, JSON.stringify(v)); },
+};
+
+const App = {
+  mode: Store.get('mode') || 'worker',
+  view: 'home',
+  myProfile: Store.get('myProfile') || null,
+  workers: Store.get('workers') || [],
+  sites: Store.get('sites') || [],
+  records: Store.get('records') || [],
+  dailyQRs: Store.get('dailyQRs') || [],
+  modal: null,
+
+  save() {
+    Store.set('myProfile', this.myProfile);
+    Store.set('workers', this.workers);
+    Store.set('sites', this.sites);
+    Store.set('records', this.records);
+    Store.set('dailyQRs', this.dailyQRs);
+    Store.set('mode', this.mode);
+  },
+
+  toast(type, text) {
+    const el = document.createElement('div');
+    el.className = `toast toast-${type}`;
+    el.textContent = text;
+    document.getElementById('toast-container').appendChild(el);
+    setTimeout(() => el.remove(), 3500);
+  },
+
+  toggleMode() {
+    if (this.mode === 'worker') {
+      const pw = prompt('관리자 비밀번호를 입력하세요\n(기본: 1234)');
+      if (pw !== '1234') { this.toast('error', '비밀번호 오류'); return; }
+      this.mode = 'admin';
+    } else {
+      this.mode = 'worker';
+    }
+    this.view = 'home';
+    this.save();
+    this.render();
+  },
+
+  navigate(view) { this.view = view; this.render(); },
+
+  saveMyProfile(data) {
+    const profile = {
+      ...data,
+      qrId: this.myProfile?.qrId || `W${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substr(2,4).toUpperCase()}`,
+      isForeign: ['5','6','7','8'].includes(data.ssnBack?.charAt(0)),
+      registeredAt: this.myProfile?.registeredAt || new Date().toISOString(),
+    };
+    this.myProfile = profile;
+    this.save();
+    this.toast('success', `${profile.name}님 정보 저장 완료!`);
+    this.view = 'home';
+    this.render();
+  },
+
+  deleteMyProfile() {
+    if (!confirm('내 정보를 삭제하시겠습니까?')) return;
+    this.myProfile = null;
+    this.save();
+    this.toast('success', '내 정보 삭제됨');
+    this.render();
+  },
+
+  registerSite(data) {
+    const site = {
+      ...data,
+      siteId: `S${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substr(2,3).toUpperCase()}`,
+      createdAt: new Date().toISOString(),
+    };
+    this.sites.push(site);
+    this.save();
+    this.toast('success', `현장 "${site.siteName}" 등록 완료`);
+    return site;
+  },
+
+  generateDailyQR(siteId) {
+    const site = this.sites.find(s => s.siteId === siteId);
+    if (!site) return null;
+    const today = new Date().toISOString().split('T')[0];
+    const existing = this.dailyQRs.find(q => q.siteId === siteId && q.date === today);
+    if (existing) { this.toast('info', '오늘의 QR이 이미 있습니다'); return existing; }
+    const token = `${siteId}|${today}|${Math.random().toString(36).substr(2,8).toUpperCase()}`;
+    const qr = { qrToken: token, siteId, siteName: site.siteName, date: today, createdAt: new Date().toISOString() };
+    this.dailyQRs.push(qr);
+    this.save();
+    this.toast('success', `${site.siteName} 오늘의 QR 생성!`);
+    return qr;
+  },
+
+  getDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371000;
+    const f1 = lat1 * Math.PI / 180, f2 = lat2 * Math.PI / 180;
+    const df = (lat2-lat1) * Math.PI / 180, dl = (lon2-lon1) * Math.PI / 180;
+    const a = Math.sin(df/2)**2 + Math.cos(f1)*Math.cos(f2)*Math.sin(dl/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  },
+
+  // 자동 출근 태그 - 본인 정보 자동 사용
+  autoTagAttendance(qrToken) {
+    if (!this.myProfile) { this.toast('error', '먼저 내 정보를 등록해주세요'); return; }
+    const today = new Date().toISOString().split('T')[0];
+    const validQR = this.dailyQRs.find(q => q.qrToken === qrToken && q.date === today);
+    if (!validQR) { this.toast('error', '유효하지 않거나 만료된 QR'); return; }
+    const site = this.sites.find(s => s.siteId === validQR.siteId);
+    if (!site) { this.toast('error', '현장 정보 없음'); return; }
+
+    const todayRecords = this.records.filter(r =>
+      r.workerQrId === this.myProfile.qrId && r.siteId === validQR.siteId && r.timestamp.startsWith(today)
+    );
+    if (todayRecords.length >= 2) { this.toast('error', '하루 2회 한도 초과'); return; }
+
+    this.toast('info', '위치 확인 중...');
+    if (!navigator.geolocation) { this.toast('error', 'GPS 사용 불가'); return; }
+
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        const distance = this.getDistance(pos.coords.latitude, pos.coords.longitude, site.lat, site.lng);
+        if (distance > site.radius) {
+          this.toast('error', `현장에서 ${Math.round(distance)}m 떨어짐 (허용 ${site.radius}m)`);
+          return;
+        }
+        const tagType = todayRecords.length === 0 ? '출근' : '퇴근';
+        this.records.push({
+          recordId: `R${Date.now().toString(36).toUpperCase()}`,
+          workerQrId: this.myProfile.qrId,
+          workerName: this.myProfile.name,
+          phone: this.myProfile.phone,
+          ssnFront: this.myProfile.ssnFront,
+          team: this.myProfile.team,
+          teamType: this.myProfile.teamType,
+          isForeign: this.myProfile.isForeign,
+          homeSite: this.myProfile.siteName,
+          siteId: validQR.siteId, siteName: site.siteName,
+          tagType, timestamp: new Date().toISOString(),
+          lat: pos.coords.latitude, lng: pos.coords.longitude,
+          distance: Math.round(distance),
+          isCrossSite: this.myProfile.siteName !== site.siteName,
+        });
+        this.save();
+        this.toast('success', `${this.myProfile.name}님 ${tagType} 완료!`);
+        this.render();
+      },
+      err => this.toast('error', `GPS 오류: ${err.message}`),
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  },
+
+  // ============================================================
+  // 📂 엑셀 일괄 등록 (관리자 전용)
+  // ============================================================
+  
+  // 엑셀 파일 선택 트리거
+  triggerExcelImport() {
+    if (window.__xlsxFailed || typeof XLSX === 'undefined') {
+      this.toast('error', '엑셀 라이브러리 로드 실패. 인터넷 연결 확인'); return;
+    }
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.xlsx,.xls,.csv';
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      this._readExcelFile(file);
+    };
+    input.click();
+  },
+
+  // 엑셀 파일 읽기
+  _readExcelFile(file) {
+    this.toast('info', `${file.name} 읽는 중...`);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array', cellText: true });
+        // 모든 시트의 데이터를 배열로 변환
+        const sheets = {};
+        workbook.SheetNames.forEach(name => {
+          sheets[name] = XLSX.utils.sheet_to_json(workbook.Sheets[name], { header: 1, defval: '' });
+        });
+        this._parseAndPreview(sheets, workbook.SheetNames, file.name);
+      } catch (err) {
+        this.toast('error', '엑셀 파일 읽기 실패: ' + err.message);
+      }
+    };
+    reader.onerror = () => this.toast('error', '파일 읽기 실패');
+    reader.readAsArrayBuffer(file);
+  },
+
+  // 엑셀 데이터 파싱 - 노무비명세서 구조 자동 감지
+  _parseAndPreview(sheets, sheetNames, fileName) {
+    const candidates = []; // 추출된 근로자 후보들
+
+    for (const sheetName of sheetNames) {
+      const rows = sheets[sheetName];
+      if (!rows || rows.length === 0) continue;
+
+      // 1. 노무비명세서 형식 시도 (일용노무비 지급 명세서)
+      const ilyongResult = this._parseIlyongFormat(rows);
+      if (ilyongResult.length > 0) {
+        candidates.push(...ilyongResult.map(w => ({ ...w, source: sheetName + ' (노무비명세서)' })));
+        continue;
+      }
+
+      // 2. 일반 표 형식 시도 (헤더가 1행에 있고, 컬럼명이 한국어)
+      const tableResult = this._parseTableFormat(rows);
+      if (tableResult.length > 0) {
+        candidates.push(...tableResult.map(w => ({ ...w, source: sheetName + ' (일반)' })));
+      }
+    }
+
+    if (candidates.length === 0) {
+      this.toast('error', '추출할 수 있는 근로자 정보가 없습니다');
+      return;
+    }
+
+    // 중복 제거 (주민번호 기준)
+    const seen = new Set();
+    const unique = [];
+    for (const w of candidates) {
+      const key = `${w.ssnFront}-${w.ssnBack}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      unique.push(w);
+    }
+
+    // 미리보기 모달 표시
+    this.modal = { type: 'importPreview', candidates: unique, fileName };
+    this.render();
+  },
+
+  // 노무비명세서 형식 파서 - 한 근로자 = 2행 구조
+  _parseIlyongFormat(rows) {
+    const workers = [];
+    
+    // 직종/직책 헤더 위치 찾기 (보통 6행 근처)
+    let blockStart = -1;
+    for (let i = 0; i < Math.min(15, rows.length); i++) {
+      const rowStr = rows[i].join('|');
+      if (rowStr.includes('직종') || rowStr.includes('직 종') || rowStr.includes('직책')) {
+        blockStart = i + 1;
+        break;
+      }
+    }
+    if (blockStart === -1) return [];
+
+    // 2행씩 묶어서 처리
+    for (let i = blockStart; i < rows.length; i += 2) {
+      const row = rows[i];
+      if (!row || row.length < 4) continue;
+
+      const jobType = String(row[0] || '').trim(); // 직종/직책
+      const name = String(row[1] || '').trim();    // 성명
+      const ssn = String(row[2] || '').trim();     // 주민번호
+      const address = String(row[3] || '').trim(); // 주소
+
+      // 일용 근로자만 추출
+      if (!jobType.includes('일용')) continue;
+      if (!name || !ssn) continue;
+
+      // 주민번호 파싱 (123456-1234567 또는 1234561234567)
+      const ssnClean = ssn.replace(/[^0-9*]/g, '');
+      let ssnFront, ssnBack;
+      if (ssn.includes('-')) {
+        const parts = ssn.split('-');
+        ssnFront = parts[0].trim();
+        ssnBack = parts[1].trim();
+      } else if (ssnClean.length >= 13) {
+        ssnFront = ssnClean.substring(0, 6);
+        ssnBack = ssnClean.substring(6, 13);
+      } else {
+        continue; // 주민번호 형식 오류
+      }
+
+      if (ssnFront.length !== 6) continue;
+
+      workers.push({
+        name,
+        ssnFront,
+        ssnBack,
+        phone: '', // 노무비명세서에는 휴대폰 정보 없음
+        address,
+        team: jobType,
+        teamType: '외주', // 일용은 일반적으로 외주
+        siteName: '',
+      });
+    }
+
+    return workers;
+  },
+
+  // 일반 표 형식 파서 - 다양한 컬럼명 자동 인식
+  _parseTableFormat(rows) {
+    if (rows.length < 2) return [];
+
+    // 헤더 후보 행 찾기 (성명/이름이 들어간 첫 행)
+    let headerIdx = -1;
+    for (let i = 0; i < Math.min(5, rows.length); i++) {
+      const rowStr = rows[i].map(c => String(c)).join('|');
+      if (/(성명|이름)/.test(rowStr)) {
+        headerIdx = i;
+        break;
+      }
+    }
+    if (headerIdx === -1) return [];
+
+    const headers = rows[headerIdx].map(h => String(h || '').trim());
+    
+    // 컬럼 인덱스 매핑 (다양한 컬럼명 자동 인식)
+    const findCol = (...patterns) => {
+      for (let i = 0; i < headers.length; i++) {
+        const h = headers[i];
+        for (const p of patterns) {
+          if (h.includes(p)) return i;
+        }
+      }
+      return -1;
+    };
+
+    const colMap = {
+      name: findCol('성명', '이름'),
+      ssn: findCol('주민등록번호', '주민번호', '주민제'),
+      ssnFront: findCol('주민앞', '주민번호앞', '주민(앞)'),
+      ssnBack: findCol('주민뒤', '주민번호뒤', '주민(뒤)'),
+      phone: findCol('휴대폰', '연락처', '전화', '핸드폰', 'HP'),
+      team: findCol('직종', '팀명', '직책', '담당', '소속팀'),
+      teamType: findCol('직영', '구분', '소속구분'),
+      siteName: findCol('현장', '소속현장', '근무지'),
+      address: findCol('주소'),
+    };
+
+    if (colMap.name === -1) return []; // 성명 없으면 파싱 불가
+
+    const workers = [];
+    for (let i = headerIdx + 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row) continue;
+      const name = String(row[colMap.name] || '').trim();
+      if (!name) continue;
+
+      // 주민번호 처리
+      let ssnFront = '', ssnBack = '';
+      if (colMap.ssn !== -1) {
+        const ssn = String(row[colMap.ssn] || '').trim();
+        if (ssn.includes('-')) {
+          const parts = ssn.split('-');
+          ssnFront = parts[0].trim();
+          ssnBack = parts[1].trim();
+        } else {
+          const clean = ssn.replace(/[^0-9*]/g, '');
+          if (clean.length >= 13) {
+            ssnFront = clean.substring(0, 6);
+            ssnBack = clean.substring(6, 13);
+          }
+        }
+      } else {
+        if (colMap.ssnFront !== -1) ssnFront = String(row[colMap.ssnFront] || '').trim();
+        if (colMap.ssnBack !== -1) ssnBack = String(row[colMap.ssnBack] || '').trim();
+      }
+
+      if (ssnFront.length !== 6) continue;
+
+      // 직영/외주 판별
+      let teamType = '외주';
+      if (colMap.teamType !== -1) {
+        const tt = String(row[colMap.teamType] || '').trim();
+        if (tt.includes('직영')) teamType = '직영';
+      }
+
+      workers.push({
+        name,
+        ssnFront,
+        ssnBack,
+        phone: colMap.phone !== -1 ? String(row[colMap.phone] || '').trim() : '',
+        team: colMap.team !== -1 ? String(row[colMap.team] || '').trim() : '',
+        teamType,
+        siteName: colMap.siteName !== -1 ? String(row[colMap.siteName] || '').trim() : '',
+      });
+    }
+
+    return workers;
+  },
+
+  // 일괄 등록 실행
+  bulkImportWorkers(candidates) {
+    let added = 0, skipped = 0;
+    for (const c of candidates) {
+      const key = `${c.ssnFront}-${c.ssnBack}`;
+      const exists = this.workers.find(w => `${w.ssnFront}-${w.ssnBack}` === key);
+      if (exists) { skipped++; continue; }
+
+      this.workers.push({
+        name: c.name,
+        ssnFront: c.ssnFront,
+        ssnBack: c.ssnBack,
+        phone: c.phone || '',
+        siteName: c.siteName || '',
+        team: c.team || '',
+        teamType: c.teamType || '외주',
+        qrId: `W${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substr(2,4).toUpperCase()}`,
+        registeredAt: new Date().toISOString(),
+        isForeign: ['5','6','7','8'].includes(c.ssnBack?.charAt(0)),
+      });
+      added++;
+    }
+    this.save();
+    this.closeModal();
+    this.toast('success', `✓ ${added}명 등록 완료 (중복 ${skipped}명 제외)`);
+    this.render();
+  },
+
+  exportExcel() {
+    if (this.records.length === 0) { this.toast('error', '내보낼 기록 없음'); return; }
+    const headers = ['일시','구분','성명','주민번호앞','휴대폰','소속팀','직영/외주','외국인','소속현장','태그현장','타현장','거리(m)'];
+    const rows = this.records.map(r => {
+      const dt = new Date(r.timestamp);
+      const d = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
+      return [d, r.tagType, r.workerName, r.ssnFront, r.phone, r.team, r.teamType,
+              r.isForeign?'O':'', r.homeSite||'', r.siteName, r.isCrossSite?'O':'', r.distance];
+    });
+    const csv = '\uFEFF' + [headers, ...rows].map(row => row.map(c => `"${c}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `출근기록_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    this.toast('success', '엑셀 다운로드 완료');
+  },
+
+  deleteAllRecords() {
+    if (!confirm('모든 기록을 삭제하시겠습니까?')) return;
+    this.records = []; this.save(); this.toast('success', '삭제 완료'); this.render();
+  },
+
+  downloadQRPNG(qr) {
+    const svgString = qrToSVG(qr.qrToken, 600);
+    if (!svgString) { this.toast('error', 'QR 생성 실패'); return; }
+    const canvas = document.createElement('canvas');
+    canvas.width = 800; canvas.height = 1000;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 800, 1000);
+    ctx.fillStyle = '#1d4ed8'; ctx.fillRect(0, 0, 800, 80);
+    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 32px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('출근 QR 코드', 400, 52);
+    ctx.fillStyle = '#1f2937'; ctx.font = 'bold 44px sans-serif';
+    ctx.fillText(qr.siteName, 400, 160);
+    ctx.fillStyle = '#6b7280'; ctx.font = '26px sans-serif';
+    ctx.fillText(qr.date, 400, 200);
+    const img = new Image();
+    const blob = new Blob([svgString], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    img.onload = () => {
+      ctx.drawImage(img, 100, 240, 600, 600);
+      ctx.fillStyle = '#1f2937'; ctx.font = 'bold 24px sans-serif';
+      ctx.fillText('📌 현장 입구에 부착해주세요', 400, 900);
+      ctx.fillStyle = '#9ca3af'; ctx.font = '18px sans-serif';
+      ctx.fillText('이 QR은 오늘 하루만 유효합니다', 400, 935);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(b2 => {
+        const url2 = URL.createObjectURL(b2);
+        const link = document.createElement('a');
+        link.href = url2; link.download = `QR_${qr.siteName}_${qr.date}.png`;
+        document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        URL.revokeObjectURL(url2);
+        this.toast('success', '다운로드 완료');
+      }, 'image/png');
+    };
+    img.src = url;
+  },
+
+  copyText(text, msg='복사됨') {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => this.toast('success', msg));
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+      this.toast('success', msg);
+    }
+  },
+
+  showQRModal(qr) { this.modal = { type: 'qr', qr }; this.render(); },
+  closeModal() { this.modal = null; this.render(); },
+
+  // ===== 카메라 QR 스캐너 =====
+  _scanStream: null, _scanRAF: null,
+
+  startScanner() {
+    if (window.__jsQRFailed || typeof jsQR === 'undefined') {
+      this.toast('error', '카메라 라이브러리 로드 실패. 인터넷 확인'); return;
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      this.toast('error', '이 브라우저는 카메라를 지원하지 않습니다'); return;
+    }
+    const overlay = document.createElement('div');
+    overlay.className = 'scanner-overlay';
+    overlay.id = 'scanner-overlay';
+    overlay.innerHTML = `
+      <div class="scanner-header">
+        <span style="font-weight: 600;">📷 현장 QR 스캔</span>
+        <button onclick="App.stopScanner()" style="background: none; border: none; color: white; font-size: 24px; cursor: pointer;">✕</button>
+      </div>
+      <div class="scanner-body">
+        <video id="scanner-video" playsinline muted></video>
+        <canvas id="scanner-canvas" style="display:none"></canvas>
+        <div class="scanner-frame"></div>
+        <div class="scanner-hint">현장 입구의 QR을 사각형 안에 맞춰주세요</div>
+      </div>`;
+    document.body.appendChild(overlay);
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      .then(stream => {
+        this._scanStream = stream;
+        const video = document.getElementById('scanner-video');
+        if (!video) { stream.getTracks().forEach(t => t.stop()); return; }
+        video.srcObject = stream;
+        video.setAttribute('playsinline', 'true');
+        video.play();
+        this._scanTick();
+      })
+      .catch(err => {
+        const body = overlay.querySelector('.scanner-body');
+        if (body) body.innerHTML = `<div style="color:white; text-align:center; padding:24px;">
+          <div style="font-size: 48px; margin-bottom: 12px;">📷</div>
+          <p>카메라 접근 실패</p>
+          <p style="font-size: 13px; opacity: 0.7;">${err.message}</p></div>`;
+      });
+  },
+
+  _scanTick() {
+    const video = document.getElementById('scanner-video');
+    const canvas = document.getElementById('scanner-canvas');
+    if (!video || !canvas || !this._scanStream) return;
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      try {
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
+        if (code && code.data) { this._onScanSuccess(code.data); return; }
+      } catch (e) {}
+    }
+    this._scanRAF = requestAnimationFrame(() => this._scanTick());
+  },
+
+  _onScanSuccess(data) {
+    this.stopScanner();
+    // 자동 출근 태그
+    this.autoTagAttendance(data);
+  },
+
+  stopScanner() {
+    if (this._scanRAF) { cancelAnimationFrame(this._scanRAF); this._scanRAF = null; }
+    if (this._scanStream) { this._scanStream.getTracks().forEach(t => t.stop()); this._scanStream = null; }
+    const overlay = document.getElementById('scanner-overlay');
+    if (overlay) overlay.remove();
+  },
+// ===== 화면 렌더링 =====
+  render() {
+    document.getElementById('header-title').textContent = this.mode === 'admin' ? '관리자' : '현장 출근기록';
+    document.getElementById('mode-btn').textContent = this.mode === 'admin' ? '근로자' : '관리자';
+    
+    const main = document.getElementById('main-content');
+    if (this.mode === 'worker') main.innerHTML = this.renderWorkerHome();
+    else main.innerHTML = this.renderAdminPanel();
+
+    const oldModal = document.querySelector('.modal-bg');
+    if (oldModal) oldModal.remove();
+    if (this.modal) {
+      const modalEl = document.createElement('div');
+      modalEl.className = 'modal-bg';
+      modalEl.onclick = (e) => { if (e.target === modalEl) this.closeModal(); };
+      if (this.modal.type === 'qr') modalEl.innerHTML = this.renderQRModal(this.modal.qr);
+      else if (this.modal.type === 'importPreview') modalEl.innerHTML = this.renderImportPreviewModal(this.modal);
+      document.body.appendChild(modalEl);
+    }
+  },
+
+  // ===== 근로자 화면 =====
+  renderWorkerHome() {
+    if (!this.myProfile) return this.renderProfileForm();
+    if (this.view === 'editProfile') return this.renderProfileForm();
+
+    const today = new Date().toISOString().split('T')[0];
+    const myToday = this.records.filter(r => r.workerQrId === this.myProfile.qrId && r.timestamp.startsWith(today));
+    const lastTag = myToday[myToday.length - 1];
+
+    return `
+      <div class="profile-card">
+        <div class="profile-name">${this.myProfile.name}님 ${this.myProfile.isForeign ? '🌏' : ''}</div>
+        <div class="profile-info">
+          ${this.myProfile.siteName} · ${this.myProfile.team} (${this.myProfile.teamType})<br>
+          ${this.myProfile.phone}
+        </div>
+      </div>
+
+      <button class="big-action" onclick="App.startScanner()">
+        📷 카메라로 출근 QR 스캔
+      </button>
+
+      ${myToday.length > 0 ? `
+        <div class="card">
+          <h3>오늘 내 기록</h3>
+          ${myToday.slice().reverse().map(r => `
+            <div class="list-item">
+              <div>
+                <div style="font-weight: 500;">
+                  <span class="tag ${r.tagType==='출근'?'tag-in':'tag-out'}">${r.tagType}</span>
+                  ${r.siteName}
+                  ${r.isCrossSite ? '<span class="tag tag-cross">타현장</span>' : ''}
+                </div>
+                <div style="font-size: 12px; color: #64748b; margin-top: 4px;">
+                  ${new Date(r.timestamp).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}
+                </div>
+              </div>
+              <div style="font-size: 12px; color: #94a3b8;">${r.distance}m</div>
+            </div>
+          `).join('')}
+        </div>
+      ` : `
+        <div class="alert alert-info">
+          📍 오늘 아직 출근 기록이 없습니다. 현장 입구의 QR을 스캔해주세요.
+        </div>
+      `}
+
+      <div class="card" style="background: #f8fafc;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div style="font-size: 13px; color: #64748b;">내 QR ID</div>
+            <div style="font-family: monospace; font-size: 12px; margin-top: 2px;">${this.myProfile.qrId}</div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-light btn-sm" onclick="App.navigate('editProfile')">정보 수정</button>
+            <button class="btn btn-danger btn-sm" onclick="App.deleteMyProfile()">삭제</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="alert alert-info" style="font-size: 12px;">
+        💡 이 정보는 본인 휴대폰에만 저장됩니다. 다른 사람이 접근할 수 없습니다.
+      </div>
+    `;
+  },
+
+  renderProfileForm() {
+    const p = this.myProfile || {};
+    return `
+      <div class="card">
+        <h2>${this.myProfile ? '내 정보 수정' : '내 정보 등록 (최초 1회)'}</h2>
+        <p style="font-size: 13px; color: #64748b; margin-bottom: 16px;">
+          이 휴대폰의 주인 정보를 등록합니다. 한 번만 입력하면 됩니다.
+        </p>
+        <div class="field"><label>성명</label><input id="p-name" value="${p.name||''}" placeholder="홍길동"></div>
+        <div class="grid-2">
+          <div><label style="font-size:13px;">주민번호 앞 6자리</label><input id="p-ssnFront" value="${p.ssnFront||''}" placeholder="900101" maxlength="6"></div>
+          <div><label style="font-size:13px;">주민번호 뒤 7자리</label><input id="p-ssnBack" type="password" value="${p.ssnBack||''}" placeholder="1234567" maxlength="7"></div>
+        </div>
+        <div class="field" style="margin-top:12px;"><label>휴대폰</label><input id="p-phone" value="${p.phone||''}" placeholder="010-0000-0000"></div>
+        <div class="field"><label>소속 현장</label><input id="p-siteName" value="${p.siteName||''}" placeholder="현장명"></div>
+        <div class="field"><label>팀명</label><input id="p-team" value="${p.team||''}" placeholder="철근팀, 형틀팀 등"></div>
+        <div class="field">
+          <label>소속 구분</label>
+          <div class="toggle-group">
+            <button type="button" id="p-tt-direct" class="${(p.teamType||'직영')==='직영'?'active':''}" onclick="App._setProfileType('직영')">직영</button>
+            <button type="button" id="p-tt-out" class="${p.teamType==='외주'?'active':''}" onclick="App._setProfileType('외주')">외주</button>
+          </div>
+          <input type="hidden" id="p-teamType" value="${p.teamType||'직영'}">
+        </div>
+        <button class="btn btn-primary" onclick="App._handleProfileSubmit()">${this.myProfile ? '수정 완료' : '등록 완료'}</button>
+        ${this.myProfile ? `<button class="btn btn-secondary" style="margin-top:8px;" onclick="App.navigate('home')">취소</button>` : ''}
+      </div>
+    `;
+  },
+
+  _setProfileType(type) {
+    document.getElementById('p-teamType').value = type;
+    document.getElementById('p-tt-direct').classList.toggle('active', type === '직영');
+    document.getElementById('p-tt-out').classList.toggle('active', type === '외주');
+  },
+
+  _handleProfileSubmit() {
+    const data = {
+      name: document.getElementById('p-name').value.trim(),
+      ssnFront: document.getElementById('p-ssnFront').value.trim(),
+      ssnBack: document.getElementById('p-ssnBack').value.trim(),
+      phone: document.getElementById('p-phone').value.trim(),
+      siteName: document.getElementById('p-siteName').value.trim(),
+      team: document.getElementById('p-team').value.trim(),
+      teamType: document.getElementById('p-teamType').value,
+    };
+    if (!data.name || !data.ssnFront || !data.ssnBack || !data.phone || !data.siteName || !data.team) {
+      alert('모든 항목을 입력해주세요'); return;
+    }
+    if (data.ssnFront.length !== 6 || data.ssnBack.length !== 7) {
+      alert('주민번호 형식 오류'); return;
+    }
+    this.saveMyProfile(data);
+  },
+
+  // ===== 관리자 화면 =====
+  renderAdminPanel() {
+    const tabs = [
+      { id: 'home', label: '📊 현황' },
+      { id: 'sites', label: '📍 현장/QR' },
+      { id: 'workers', label: '👷 근로자' },
+      { id: 'records', label: '📋 기록' },
+    ];
+    const tabsHtml = `<div style="display:flex; gap:4px; margin-bottom:16px; overflow-x:auto;">
+      ${tabs.map(t => `<button class="btn btn-sm ${this.view===t.id?'btn-primary':'btn-light'}" onclick="App.navigate('${t.id}')">${t.label}</button>`).join('')}
+    </div>`;
+    
+    let content = '';
+    if (this.view === 'home' || this.view === 'records') content = this.renderAdminRecords();
+    else if (this.view === 'sites') content = this.renderAdminSites();
+    else if (this.view === 'workers') content = this.renderAdminWorkers();
+    return tabsHtml + content;
+  },
+
+  renderAdminWorkers() {
+    return `
+      <div class="card">
+        <h2>근로자 일괄 등록</h2>
+        <div class="alert alert-info">
+          📂 <strong>노무비명세서 또는 근로자 명단 엑셀 파일</strong>을 업로드하면 자동으로 인식해서 등록합니다.<br>
+          <span style="font-size: 11px;">지원 형식: .xlsx, .xls, .csv · 자동 감지: 일용노무비 지급 명세서, 일반 표 형식</span>
+        </div>
+        <button class="btn btn-success" onclick="App.triggerExcelImport()">
+          📂 엑셀 파일 선택해서 일괄 등록
+        </button>
+        <div class="alert alert-warn" style="margin-top: 14px; font-size: 12px;">
+          🔒 <strong>개인정보 안내</strong>: 모든 데이터는 이 휴대폰/PC 안에만 저장됩니다. 외부로 전송되지 않습니다.<br>
+          중복(같은 주민번호)은 자동으로 걸러집니다.
+        </div>
+      </div>
+
+      ${this.workers.length > 0 ? `
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h3 style="margin:0;">등록된 근로자 (${this.workers.length}명)</h3>
+            <button class="btn btn-danger btn-sm" onclick="App.deleteAllWorkers()">🗑️ 전체삭제</button>
+          </div>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead><tr><th>성명</th><th>주민앞</th><th>휴대폰</th><th>현장</th><th>팀</th><th>구분</th></tr></thead>
+              <tbody>
+                ${this.workers.slice().reverse().map(w => `
+                  <tr>
+                    <td>${w.name}${w.isForeign?'<span class="tag tag-foreign">외</span>':''}</td>
+                    <td style="font-family:monospace; font-size:11px;">${w.ssnFront}</td>
+                    <td style="font-size:12px;">${w.phone || '-'}</td>
+                    <td style="font-size:12px;">${w.siteName || '<span style="color:#dc2626;">미지정</span>'}</td>
+                    <td style="font-size:12px;">${w.team || '-'}</td>
+                    <td><span class="tag ${w.teamType==='직영'?'tag-in':'tag-out'}">${w.teamType}</span></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ` : ''}
+    `;
+  },
+
+  deleteAllWorkers() {
+    if (!confirm(`${this.workers.length}명의 근로자 정보를 전부 삭제하시겠습니까?`)) return;
+    if (!confirm('한 번 더 확인합니다. 정말 삭제하시겠습니까?')) return;
+    this.workers = [];
+    this.save();
+    this.toast('success', '전체 삭제 완료');
+    this.render();
+  },
+
+  renderAdminSites() {
+    const today = new Date().toISOString().split('T')[0];
+    return `
+      <div class="card">
+        <h2>현장 등록</h2>
+        <div class="field"><label>현장명</label><input id="s-name" placeholder="○○현장"></div>
+        <div class="field">
+          <label>GPS 좌표</label>
+          <button class="btn btn-light" style="margin-bottom:8px;" onclick="App._getMyLoc()">📍 현재 위치 사용</button>
+          <div class="grid-2">
+            <input id="s-lat" placeholder="위도 (35.131800)">
+            <input id="s-lng" placeholder="경도 (129.092900)">
+          </div>
+          <div class="field-hint">💡 카카오맵에서 우클릭 → 좌표 복사 가능</div>
+        </div>
+        <div class="field"><label>허용 반경 (m)</label><input id="s-radius" type="number" value="100"></div>
+        <button class="btn btn-primary" onclick="App._handleSiteSubmit()">현장 등록</button>
+      </div>
+
+      ${this.sites.length > 0 ? `
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h3 style="margin:0;">등록 현장 (${this.sites.length})</h3>
+            <span class="tag tag-in">${today}</span>
+          </div>
+          ${this.sites.map(s => {
+            const todayQR = this.dailyQRs.find(q => q.siteId === s.siteId && q.date === today);
+            return `<div class="list-item">
+              <div>
+                <div style="font-weight:500;">${s.siteName}</div>
+                <div style="font-size:12px; color:#64748b;">반경 ${s.radius}m · ${s.lat.toFixed(4)}, ${s.lng.toFixed(4)}</div>
+              </div>
+              ${todayQR
+                ? `<button class="btn btn-success btn-sm" onclick='App.showQRModal(${JSON.stringify(todayQR).replace(/'/g,"&apos;")})'>📱 오늘 QR</button>`
+                : `<button class="btn btn-primary btn-sm" onclick="App._handleGenQR('${s.siteId}')">+ QR 생성</button>`}
+            </div>`;
+          }).join('')}
+        </div>
+      ` : ''}
+    `;
+  },
+
+  _getMyLoc() {
+    if (!navigator.geolocation) { alert('GPS 사용 불가'); return; }
+    this.toast('info', '위치 가져오는 중...');
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        document.getElementById('s-lat').value = pos.coords.latitude.toFixed(6);
+        document.getElementById('s-lng').value = pos.coords.longitude.toFixed(6);
+        this.toast('success', '현재 위치 입력 완료');
+      },
+      err => alert('위치 오류: ' + err.message),
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  },
+
+  _handleSiteSubmit() {
+    const data = {
+      siteName: document.getElementById('s-name').value.trim(),
+      lat: parseFloat(document.getElementById('s-lat').value),
+      lng: parseFloat(document.getElementById('s-lng').value),
+      radius: parseInt(document.getElementById('s-radius').value),
+    };
+    if (!data.siteName || isNaN(data.lat) || isNaN(data.lng)) { alert('현장명과 위치 입력'); return; }
+    this.registerSite(data);
+    this.render();
+  },
+
+  _handleGenQR(siteId) {
+    const qr = this.generateDailyQR(siteId);
+    if (qr) { this.render(); this.showQRModal(qr); }
+  },
+
+  renderAdminRecords() {
+    const today = new Date().toISOString().split('T')[0];
+    const todayRecords = this.records.filter(r => r.timestamp.startsWith(today));
+    const todayQRs = this.dailyQRs.filter(q => q.date === today);
+    const filtered = this.records.slice().reverse();
+
+    return `
+      <div class="card">
+        <h2>오늘 현황 (${today})</h2>
+        <div class="grid-4">
+          <div class="stat"><div class="stat-value">${this.sites.length}</div><div class="stat-label">현장</div></div>
+          <div class="stat"><div class="stat-value">${todayQRs.length}/${this.sites.length}</div><div class="stat-label">오늘 QR</div></div>
+          <div class="stat"><div class="stat-value">${todayRecords.length}</div><div class="stat-label">오늘 태그</div></div>
+          <div class="stat"><div class="stat-value">${this.records.length}</div><div class="stat-label">전체</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <h2 style="margin:0;">출근 기록</h2>
+          <div class="btn-row">
+            <button class="btn btn-success btn-sm" onclick="App.exportExcel()">📥 엑셀</button>
+            <button class="btn btn-danger btn-sm" onclick="App.deleteAllRecords()">🗑️</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead><tr><th>일시</th><th>구분</th><th>성명</th><th>팀</th><th>현장</th><th style="text-align:right;">거리</th></tr></thead>
+            <tbody>
+              ${filtered.length === 0 ? `<tr><td colspan="6" style="text-align:center; padding:32px; color:#94a3b8;">기록 없음</td></tr>` :
+                filtered.map(r => `
+                  <tr>
+                    <td style="font-family:monospace; font-size:11px;">${new Date(r.timestamp).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}</td>
+                    <td><span class="tag ${r.tagType==='출근'?'tag-in':'tag-out'}">${r.tagType}</span></td>
+                    <td>${r.workerName}${r.isForeign?'<span class="tag tag-foreign">외</span>':''}</td>
+                    <td style="font-size:12px;">${r.team}<br><span style="color:#94a3b8;">${r.teamType}</span></td>
+                    <td style="font-size:12px;">${r.siteName}${r.isCrossSite?'<br><span style="color:#7e22ce; font-size:11px;">↳ 타현장</span>':''}</td>
+                    <td style="text-align:right; font-size:12px; color:#64748b;">${r.distance}m</td>
+                  </tr>
+                `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  },
+
+  renderQRModal(qr) {
+    const svg = qrToSVG(qr.qrToken, 250);
+    return `
+      <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-header">
+          <h3 style="margin:0;">${qr.siteName}</h3>
+          <button class="modal-close" onclick="App.closeModal()">✕</button>
+        </div>
+        <p style="font-size:14px; color:#64748b; margin-bottom:12px;">${qr.date} 출근 QR</p>
+        <div class="qr-display">${svg || '<p>QR 생성 실패</p>'}</div>
+        <div style="text-align:center; margin:12px 0; font-weight:500;">${qr.siteName} · ${qr.date}</div>
+        <button class="btn btn-primary" onclick='App.downloadQRPNG(${JSON.stringify(qr).replace(/'/g,"&apos;")})'>📥 PNG 다운로드</button>
+        <div style="margin-top:8px;"></div>
+        <button class="btn btn-secondary" onclick="App.copyText('${qr.qrToken}', 'QR 토큰 복사됨')">📋 토큰 복사</button>
+        <p style="font-size:12px; color:#64748b; margin-top:12px; text-align:center;">💡 QR 우클릭 → 이미지 저장도 가능</p>
+      </div>
+    `;
+  },
+
+  renderImportPreviewModal(modal) {
+    const { candidates, fileName } = modal;
+    const foreignCount = candidates.filter(c => ['5','6','7','8'].includes(c.ssnBack?.charAt(0))).length;
+    const existingCount = candidates.filter(c => 
+      this.workers.find(w => `${w.ssnFront}-${w.ssnBack}` === `${c.ssnFront}-${c.ssnBack}`)
+    ).length;
+    const newCount = candidates.length - existingCount;
+
+    return `
+      <div class="modal" onclick="event.stopPropagation()" style="max-width: 540px;">
+        <div class="modal-header">
+          <h3 style="margin:0;">📂 일괄 등록 미리보기</h3>
+          <button class="modal-close" onclick="App.closeModal()">✕</button>
+        </div>
+        <p style="font-size:13px; color:#64748b; margin-bottom:12px;">파일: <strong>${fileName}</strong></p>
+        
+        <div class="grid-4" style="margin-bottom: 14px;">
+          <div class="stat">
+            <div class="stat-value">${candidates.length}</div>
+            <div class="stat-label">감지된 인원</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value" style="color: #16a34a;">${newCount}</div>
+            <div class="stat-label">신규 등록 예정</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value" style="color: #94a3b8;">${existingCount}</div>
+            <div class="stat-label">중복 (제외)</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value" style="color: #c2410c;">${foreignCount}</div>
+            <div class="stat-label">외국인</div>
+          </div>
+        </div>
+
+        <div style="max-height: 300px; overflow-y: auto; border: 1px solid var(--gray-200); border-radius: 8px; margin-bottom: 14px;">
+          <table style="font-size: 12px;">
+            <thead><tr><th>성명</th><th>주민(앞)</th><th>직종</th><th>구분</th><th>출처</th></tr></thead>
+            <tbody>
+              ${candidates.map(c => {
+                const isForeign = ['5','6','7','8'].includes(c.ssnBack?.charAt(0));
+                const isDup = this.workers.find(w => `${w.ssnFront}-${w.ssnBack}` === `${c.ssnFront}-${c.ssnBack}`);
+                return `<tr style="${isDup ? 'opacity: 0.5;' : ''}">
+                  <td>${c.name}${isForeign ? '<span class="tag tag-foreign">외</span>' : ''}${isDup ? ' <span style="color:#94a3b8;">(중복)</span>' : ''}</td>
+                  <td style="font-family: monospace;">${c.ssnFront}</td>
+                  <td>${c.team || '-'}</td>
+                  <td>${c.teamType}</td>
+                  <td style="color:#94a3b8; font-size:11px;">${c.source || ''}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="alert alert-info" style="font-size: 12px;">
+          ⚠️ 주민번호 중복은 자동 제외됩니다. 신규 ${newCount}명만 등록됩니다.<br>
+          소속 현장이 비어있으면 나중에 직접 수정해야 합니다.
+        </div>
+
+        <button class="btn btn-success" onclick='App.bulkImportWorkers(${JSON.stringify(candidates).replace(/'/g,"&apos;")})'>
+          ✓ ${newCount}명 등록 진행
+        </button>
+        <div style="margin-top:8px;"></div>
+        <button class="btn btn-secondary" onclick="App.closeModal()">취소</button>
+      </div>
+    `;
+  },
+};
+
+App.render();
+</script>
+</body>
+</html>
