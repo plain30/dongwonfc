@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>2026 표준품셈 목차 통합 검색</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; }
+  body { display: flex; flex-direction: column; background: #f5f6f8; color: #222; }
+  header { background: linear-gradient(135deg, #1a3a6c, #2563aa); color: white; padding: 12px 20px; box-shadow: 0 2px 6px rgba(0,0,0,.15); flex-shrink: 0; }
+  header h1 { margin: 0 0 4px 0; font-size: 17px; font-weight: 600; }
+  header .sub { font-size: 12px; opacity: .85; }
+  .top-controls { margin-top: 10px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .book-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; width: 100%; }
+  .book-label, .chapter-label { font-size: 11px; opacity: .85; margin-right: 4px; font-weight: 600; }
+  .book-btn { padding: 7px 16px; background: rgba(255,255,255,.1); color: white; border: 2px solid rgba(255,255,255,.35); border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 700; }
+  .book-btn.active { background: #f7c948; color: #1a3a6c; border-color: #f7c948; }
+  .tab-btn { padding: 6px 12px; background: rgba(255,255,255,.15); color: white; border: 1px solid rgba(255,255,255,.3); border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; }
+  .tab-btn.active { background: white; color: #1a3a6c; }
+  .tab-btn.hidden { display: none; }
+  .search-bar { flex: 1; min-width: 220px; display: flex; gap: 8px; align-items: center; margin-left: auto; }
+  .search-bar input { flex: 1; padding: 8px 12px; border: none; border-radius: 6px; font-size: 14px; outline: none; }
+  .search-bar .count { background: rgba(255,255,255,.2); padding: 6px 10px; border-radius: 6px; font-size: 12px; white-space: nowrap; }
+  main { display: flex; flex: 1; min-height: 0; }
+  #sidebar { width: 380px; flex-shrink: 0; background: white; border-right: 1px solid #d8dce3; overflow-y: auto; padding: 0; }
+  .chapter-divider { background: #1a3a6c; color: white; padding: 8px 14px; font-size: 13px; font-weight: 700; position: sticky; top: 0; z-index: 5; }
+  .chapter-divider.telecom { background: #6b21a8; }
+  #sidebar .item { padding: 10px 14px; border-bottom: 1px solid #eef0f3; cursor: pointer; display: flex; gap: 8px; align-items: flex-start; transition: background .12s; }
+  #sidebar .item:hover { background: #eef5ff; }
+  #sidebar .item.active { background: #d6e8ff; border-left: 4px solid #2563aa; padding-left: 10px; }
+  #sidebar .item.sub { padding-left: 32px; background: #fafbfc; }
+  #sidebar .item.sub:hover { background: #eef5ff; }
+  #sidebar .item.sub.active { background: #d6e8ff; padding-left: 28px; }
+  #sidebar .id { flex-shrink: 0; font-weight: 700; color: #1a3a6c; font-size: 13px; min-width: 64px; }
+  #sidebar .item.telecom .id { color: #6b21a8; }
+  #sidebar .item.sub .id { color: #2563aa; min-width: 72px; }
+  #sidebar .item.sub.telecom .id { color: #8b4cc8; }
+  #sidebar .title { font-size: 13px; flex: 1; line-height: 1.4; }
+  #sidebar .page { font-size: 11px; color: #8893a4; flex-shrink: 0; }
+  #sidebar .item.hidden, .chapter-divider.hidden { display: none; }
+  #viewer { flex: 1; overflow-y: auto; background: #4a4f57; padding: 20px; min-width: 0; padding-right: 200px; }
+  #viewer .placeholder { color: #cdd2db; text-align: center; margin-top: 60px; font-size: 16px; }
+  #viewer .page-block { margin-bottom: 14px; text-align: center; }
+  #viewer .page-label { color: #fff; font-size: 11px; margin-bottom: 4px; text-align: center; background: rgba(0,0,0,.25); display: inline-block; padding: 2px 8px; border-radius: 4px; }
+  #viewer .page-wrapper { position: relative; display: inline-block; max-width: 64%; box-shadow: 0 4px 16px rgba(0,0,0,.4); border-radius: 4px; overflow: hidden; background: white; line-height: 0; transition: box-shadow .2s; }
+  #viewer .page-wrapper.active-anno { box-shadow: 0 0 0 3px #f7c948, 0 4px 16px rgba(0,0,0,.4); }
+  #viewer .page-wrapper img { display: block; width: 100%; height: auto; }
+  #viewer .page-wrapper canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+  /* Tool-specific cursors */
+  body[data-tool="pen"] #viewer .page-wrapper canvas { cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 18 18'><circle cx='9' cy='9' r='2.5' fill='%23222'/><circle cx='9' cy='9' r='3.5' fill='none' stroke='%23fff' stroke-width='1'/></svg>") 9 9, crosshair; }
+  body[data-tool="highlighter"] #viewer .page-wrapper canvas { cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><rect x='4' y='4' width='16' height='16' fill='%23fff066' stroke='%23222' stroke-width='1'/><rect x='4' y='4' width='16' height='4' fill='%23222'/></svg>") 12 12, crosshair; }
+  body[data-tool="eraser"] #viewer .page-wrapper canvas { cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'><rect x='3' y='9' width='22' height='12' fill='%23ffc8d3' stroke='%23222' stroke-width='1' rx='2'/><rect x='17' y='9' width='8' height='12' fill='%23f59ab1' stroke='%23222' stroke-width='1' rx='2'/></svg>") 14 14, crosshair; }
+  #viewer .section-header { background: #fff; color: #1a3a6c; padding: 12px 16px; border-radius: 6px; margin-bottom: 14px; font-size: 15px; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,.15); max-width: 64%; margin-left: auto; margin-right: auto; }
+  #viewer .section-header .sec-id { color: #2563aa; margin-right: 10px; }
+  #viewer .section-header.telecom .sec-id { color: #6b21a8; }
+  .no-results { padding: 30px 20px; text-align: center; color: #8893a4; font-size: 13px; }
+  /* Floating annotation toolbar */
+  .float-toolbar { position: fixed; top: 50%; right: 14px; transform: translateY(-50%); background: rgba(255,255,255,.97); padding: 12px 10px; border-radius: 10px; box-shadow: 0 6px 24px rgba(0,0,0,.35); display: flex; flex-direction: column; gap: 8px; z-index: 9999; width: 170px; font-size: 12px; border: 1px solid rgba(0,0,0,.08); }
+  .float-toolbar .ft-collapse { background: #f0f4ff; border: 1px solid #c4d4ed; cursor: pointer; font-size: 13px; color: #2563aa; padding: 3px 8px; width: auto; align-self: flex-end; border-radius: 5px; line-height: 1.2; margin-bottom: -2px; }
+  .float-toolbar .ft-collapse:hover { background: #d6e8ff; }
+  .float-toolbar .ft-header { font-weight: 700; color: #1a3a6c; text-align: center; font-size: 13px; margin-bottom: 2px; border-bottom: 1px solid #eee; padding-bottom: 6px; }
+  .float-toolbar.collapsed { width: auto; padding: 6px 8px; flex-direction: row; align-items: center; gap: 8px; }
+  .float-toolbar.collapsed > *:not(.ft-collapse):not(.ft-header) { display: none; }
+  .float-toolbar.collapsed .ft-header { border: none; margin: 0; padding: 0; }
+  .float-toolbar .lbl { color: #555; font-weight: 700; font-size: 11px; text-align: center; }
+  .float-toolbar .swatch-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; justify-items: center; }
+  .float-toolbar .swatch { width: 26px; height: 26px; border-radius: 50%; cursor: pointer; border: 2px solid #fff; box-shadow: 0 0 0 1px #aaa; transition: transform .1s; }
+  .float-toolbar .swatch:hover { transform: scale(1.1); }
+  .float-toolbar .swatch.active { box-shadow: 0 0 0 3px #2563aa; transform: scale(1.18); }
+  .float-toolbar select, .float-toolbar button.tool { font-size: 12px; padding: 5px 8px; border: 1px solid #ccc; border-radius: 5px; cursor: pointer; background: #fff; font-family: inherit; width: 100%; }
+  .float-toolbar button.tool:hover { background: #f0f4ff; }
+  .float-toolbar .tool.active { background: #d6e8ff; border-color: #2563aa; font-weight: 700; }
+  .float-toolbar .opacity-wrap { display: flex; align-items: center; gap: 6px; }
+  .float-toolbar input[type="range"] { flex: 1; width: auto; margin: 0; }
+  .float-toolbar .op-val { font-weight: 700; color: #1a3a6c; }
+  .float-toolbar hr { border: none; border-top: 1px solid #e0e0e0; margin: 2px 0; }
+  .float-toolbar .hint { font-size: 10px; color: #555; text-align: left; line-height: 1.4; padding: 5px 6px; background: #f7f9fc; border-radius: 4px; }
+  .float-toolbar .hint b { color: #1a3a6c; }
+  /* Page action buttons */
+  .page-actions { position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; z-index: 20; line-height: normal; }
+  .page-actions button { background: rgba(255,255,255,.95); border: 1px solid #aaa; border-radius: 5px; padding: 5px 10px; font-size: 12px; cursor: pointer; font-family: inherit; box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+  .page-actions button:hover { background: #eef5ff; }
+  .page-actions .dl-btn { background: #2563aa; color: white; border-color: #2563aa; font-weight: 700; }
+  .page-actions .dl-btn:hover { background: #1a3a6c; }
+  #sidebar::-webkit-scrollbar, #viewer::-webkit-scrollbar { width: 10px; }
+  #sidebar::-webkit-scrollbar-thumb { background: #bcc3d0; border-radius: 5px; }
+  #viewer::-webkit-scrollbar-thumb { background: #6b7180; border-radius: 5px; }
+</style>
+</head>
+<body data-tool="highlighter">
+<header>
+  <h1>2026년 표준품셈 목차 통합 검색</h1>
+  <div class="sub">총 <span id="totalCount">0</span>개 항목 · 전기공사 <span id="ecCount">0</span> · 통신공사 <span id="tcCount">0</span></div>
+  <div class="top-controls">
+    <div class="book-row">
+      <span class="book-label">📕 공사:</span>
+      <button class="book-btn active" data-book="all">전체</button>
+      <button class="book-btn" data-book="electric">전기공사 표준품셈</button>
+      <button class="book-btn" data-book="telecom">통신공사 표준품셈</button>
+    </div>
+    <span class="chapter-label">📂 공종:</span>
+    <button class="tab-btn active" data-chapter="all">전체</button>
+    <button class="tab-btn" data-chapter="4" data-book="electric">제4장 배전설비</button>
+    <button class="tab-btn" data-chapter="5" data-book="electric">제5장 내선설비</button>
+    <button class="tab-btn" data-chapter="10" data-book="electric">제10장 소방전기</button>
+    <button class="tab-btn" data-chapter="4" data-book="telecom">제4장 통신케이블</button>
+    <button class="tab-btn" data-chapter="5" data-book="telecom">제5장 교환설비</button>
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="검색: 절번호 또는 키워드" autocomplete="off">
+      <div class="count" id="visibleCount">0개 표시</div>
+    </div>
+  </div>
+</header>
+<main>
+  <nav id="sidebar"></nav>
+  <section id="viewer">
+    <div class="placeholder">
+      ← 왼쪽 목록에서 항목을 선택하세요.<br>
+      상단에서 [공사 → 공종]을 선택하거나, 검색창에 절번호/키워드를 입력하세요.
+    </div>
+  </section>
+</main>
+
+<div class="float-toolbar" id="floatToolbar">
+  <button class="ft-collapse" id="ftCollapse" title="접기/펼치기">▾ 접기</button>
+  <div class="ft-header">🎨 색칠 도구</div>
+  <span class="lbl">색상</span>
+  <div class="swatch-row">
+    <span class="swatch active" data-color="#ffd400" style="background:#ffd400" title="노랑"></span>
+    <span class="swatch" data-color="#ff2d2d" style="background:#ff2d2d" title="빨강"></span>
+    <span class="swatch" data-color="#ff8800" style="background:#ff8800" title="주황"></span>
+    <span class="swatch" data-color="#22c55e" style="background:#22c55e" title="초록"></span>
+    <span class="swatch" data-color="#2563ea" style="background:#2563ea" title="파랑"></span>
+    <span class="swatch" data-color="#000000" style="background:#000000" title="검정"></span>
+  </div>
+  <hr>
+  <span class="lbl">굵기</span>
+  <select id="ftSize">
+    <option value="3">얇게</option>
+    <option value="6" selected>보통</option>
+    <option value="15">두껍게</option>
+    <option value="30">매우 두껍게</option>
+  </select>
+  <span class="lbl">불투명도 <span class="op-val" id="ftOpVal">50%</span></span>
+  <div class="opacity-wrap">
+    <input type="range" id="ftOpacity" min="5" max="100" value="50" step="5">
+  </div>
+  <hr>
+  <button class="tool" data-tool="pen">✏️ 펜</button>
+  <button class="tool active" data-tool="highlighter">🖍️ 형광펜</button>
+  <button class="tool" data-tool="eraser">🧽 지우개</button>
+  <div class="hint">
+    💡 <b>Shift</b>: 수평/수직선<br>
+    💡 <b>Ctrl+Z</b>: 되돌리기<br>
+    💡 <b>Del</b>: 페이지 전체 지우기
+  </div>
+</div>
+
+<script>
+const SECTIONS = [{"page": 311, "section": "4-1", "chapter": 4, "major": 1, "minor": 0, "title": "콘크리트전주 인력세움", "end_page": 311, "book": "electric"}, {"page": 312, "section": "4-2", "chapter": 4, "major": 2, "minor": 0, "title": "콘크리트전주 기계세움", "end_page": 313, "book": "electric"}, {"page": 314, "section": "4-2-1", "chapter": 4, "major": 2, "minor": 1, "title": "아치형전주버팀대(근가)", "end_page": 314, "book": "electric"}, {"page": 314, "section": "4-2-2", "chapter": 4, "major": 2, "minor": 2, "title": "강관전주 기계세움", "end_page": 314, "book": "electric"}, {"page": 315, "section": "4-2-3", "chapter": 4, "major": 2, "minor": 3, "title": "콘크리트전주 백호세움", "end_page": 315, "book": "electric"}, {"page": 316, "section": "4-3", "chapter": 4, "major": 3, "minor": 0, "title": "접지공사", "end_page": 317, "book": "electric"}, {"page": 318, "section": "4-3-1", "chapter": 4, "major": 3, "minor": 1, "title": "원형콘크리트 접지극매설", "end_page": 318, "book": "electric"}, {"page": 318, "section": "4-4", "chapter": 4, "major": 4, "minor": 0, "title": "가공배전선로 표시찰설치", "end_page": 318, "book": "electric"}, {"page": 319, "section": "4-5", "chapter": 4, "major": 5, "minor": 0, "title": "지지선 설치", "end_page": 319, "book": "electric"}, {"page": 320, "section": "4-5-1", "chapter": 4, "major": 5, "minor": 1, "title": "원형지지선 전주버팀대(근가)", "end_page": 320, "book": "electric"}, {"page": 320, "section": "4-5-2", "chapter": 4, "major": 5, "minor": 2, "title": "지지선버팀대기계화 시공및지지선 설치", "end_page": 320, "book": "electric"}, {"page": 321, "section": "4-6", "chapter": 4, "major": 6, "minor": 0, "title": "ㄱ형완철및가공피뢰선 (가공지선 )지지대 주상설치", "end_page": 321, "book": "electric"}, {"page": 321, "section": "4-7", "chapter": 4, "major": 7, "minor": 0, "title": "배전용 애자설치", "end_page": 322, "book": "electric"}, {"page": 323, "section": "4-8", "chapter": 4, "major": 8, "minor": 0, "title": "저압전선설치 (가선)용랙(Rack)설치", "end_page": 323, "book": "electric"}, {"page": 323, "section": "4-9", "chapter": 4, "major": 9, "minor": 0, "title": "보호선 및보호망설치", "end_page": 323, "book": "electric"}, {"page": 324, "section": "4-10", "chapter": 4, "major": 10, "minor": 0, "title": "배전선 전선설치 (가선)", "end_page": 325, "book": "electric"}, {"page": 326, "section": "4-10-1", "chapter": 4, "major": 10, "minor": 1, "title": "다기능전선설치 (가선)기계화공법", "end_page": 326, "book": "electric"}, {"page": 327, "section": "4-11", "chapter": 4, "major": 11, "minor": 0, "title": "전선압축 접속", "end_page": 327, "book": "electric"}, {"page": 327, "section": "4-12", "chapter": 4, "major": 12, "minor": 0, "title": "절연커버설치", "end_page": 327, "book": "electric"}, {"page": 328, "section": "4-13", "chapter": 4, "major": 13, "minor": 0, "title": "변압기인상인하선 설치", "end_page": 328, "book": "electric"}, {"page": 328, "section": "4-14", "chapter": 4, "major": 14, "minor": 0, "title": "변대설치", "end_page": 328, "book": "electric"}, {"page": 329, "section": "4-15", "chapter": 4, "major": 15, "minor": 0, "title": "주상변압기인력설치", "end_page": 329, "book": "electric"}, {"page": 330, "section": "4-16", "chapter": 4, "major": 16, "minor": 0, "title": "주상변압기기계설치", "end_page": 330, "book": "electric"}, {"page": 331, "section": "4-17", "chapter": 4, "major": 17, "minor": 0, "title": "동일주상의변압기이동설치", "end_page": 331, "book": "electric"}, {"page": 331, "section": "4-18", "chapter": 4, "major": 18, "minor": 0, "title": "절연변압기인력설치", "end_page": 331, "book": "electric"}, {"page": 332, "section": "4-19", "chapter": 4, "major": 19, "minor": 0, "title": "변압기탭(Tap) 전환", "end_page": 332, "book": "electric"}, {"page": 332, "section": "4-20", "chapter": 4, "major": 20, "minor": 0, "title": "컷아웃 스위치 (COS)설치", "end_page": 332, "book": "electric"}, {"page": 333, "section": "4-20-1", "chapter": 4, "major": 20, "minor": 1, "title": "결합애자 동시컷아웃 스위치 (COS)설치", "end_page": 333, "book": "electric"}, {"page": 334, "section": "4-21", "chapter": 4, "major": 21, "minor": 0, "title": "가공선용 개폐기및보호기기 인력설치", "end_page": 334, "book": "electric"}, {"page": 334, "section": "4-22", "chapter": 4, "major": 22, "minor": 0, "title": "가공선용 개폐기및보호기기 기계설치", "end_page": 334, "book": "electric"}, {"page": 335, "section": "4-23", "chapter": 4, "major": 23, "minor": 0, "title": "단로기 설치", "end_page": 335, "book": "electric"}, {"page": 336, "section": "4-24", "chapter": 4, "major": 24, "minor": 0, "title": "피뢰기 설치", "end_page": 336, "book": "electric"}, {"page": 336, "section": "4-25", "chapter": 4, "major": 25, "minor": 0, "title": "가공인입선 기계장비 이용설치", "end_page": 337, "book": "electric"}, {"page": 338, "section": "4-25-1", "chapter": 4, "major": 25, "minor": 1, "title": "가공인입선 인력이용설치", "end_page": 339, "book": "electric"}, {"page": 340, "section": "4-25-2", "chapter": 4, "major": 25, "minor": 2, "title": "가공인입선 기계장비 이용공중분기", "end_page": 340, "book": "electric"}, {"page": 341, "section": "4-25-3", "chapter": 4, "major": 25, "minor": 3, "title": "가공인입선 인력이용공중분기", "end_page": 341, "book": "electric"}, {"page": 342, "section": "4-26", "chapter": 4, "major": 26, "minor": 0, "title": "인입선 구출선설치", "end_page": 342, "book": "electric"}, {"page": 343, "section": "4-27", "chapter": 4, "major": 27, "minor": 0, "title": "22.9kV가공케이블 설치", "end_page": 344, "book": "electric"}, {"page": 345, "section": "4-27-1", "chapter": 4, "major": 27, "minor": 1, "title": "저압가공케이블 설치", "end_page": 345, "book": "electric"}, {"page": 346, "section": "4-28", "chapter": 4, "major": 28, "minor": 0, "title": "조가선 설치", "end_page": 346, "book": "electric"}, {"page": 347, "section": "4-29", "chapter": 4, "major": 29, "minor": 0, "title": "강관설치", "end_page": 347, "book": "electric"}, {"page": 348, "section": "4-30", "chapter": 4, "major": 30, "minor": 0, "title": "콘크리트 트러프설치", "end_page": 348, "book": "electric"}, {"page": 349, "section": "4-30-1", "chapter": 4, "major": 30, "minor": 1, "title": "콘크리트 트러프뚜껑여닫이", "end_page": 349, "book": "electric"}, {"page": 349, "section": "4-31", "chapter": 4, "major": 31, "minor": 0, "title": "합성수지 파형관 설치", "end_page": 350, "book": "electric"}, {"page": 351, "section": "4-32", "chapter": 4, "major": 32, "minor": 0, "title": "관로청소 및도통시험", "end_page": 351, "book": "electric"}, {"page": 351, "section": "4-33", "chapter": 4, "major": 33, "minor": 0, "title": "입상케이블 보호관 설치", "end_page": 351, "book": "electric"}, {"page": 352, "section": "4-34", "chapter": 4, "major": 34, "minor": 0, "title": "전력케이블 설치", "end_page": 353, "book": "electric"}, {"page": 354, "section": "4-35", "chapter": 4, "major": 35, "minor": 0, "title": "지중전력케이블 기계장비 이용설치", "end_page": 354, "book": "electric"}, {"page": 355, "section": "4-35-1", "chapter": 4, "major": 35, "minor": 1, "title": "전력케이블 터널내기계설치", "end_page": 355, "book": "electric"}, {"page": 356, "section": "4-36", "chapter": 4, "major": 36, "minor": 0, "title": "전력케이블 직선접속", "end_page": 356, "book": "electric"}, {"page": 357, "section": "4-36-1", "chapter": 4, "major": 36, "minor": 1, "title": "25kV이하특고압 전력케이블 직선접속", "end_page": 357, "book": "electric"}, {"page": 358, "section": "4-37", "chapter": 4, "major": 37, "minor": 0, "title": "전력케이블 단말처리", "end_page": 358, "book": "electric"}, {"page": 359, "section": "4-38", "chapter": 4, "major": 38, "minor": 0, "title": "지중케이블용 금구류 부착", "end_page": 359, "book": "electric"}, {"page": 359, "section": "4-39", "chapter": 4, "major": 39, "minor": 0, "title": "케이블헤드지지금구 설치", "end_page": 359, "book": "electric"}, {"page": 359, "section": "4-40", "chapter": 4, "major": 40, "minor": 0, "title": "지상설치형변압기기계설치", "end_page": 359, "book": "electric"}, {"page": 360, "section": "4-41", "chapter": 4, "major": 41, "minor": 0, "title": "배전지중용 개폐기기계설치", "end_page": 360, "book": "electric"}, {"page": 361, "section": "4-42", "chapter": 4, "major": 42, "minor": 0, "title": "지상설치형변압기엘보접속", "end_page": 361, "book": "electric"}, {"page": 361, "section": "4-42-1", "chapter": 4, "major": 42, "minor": 1, "title": "지상기기 내부청소", "end_page": 361, "book": "electric"}, {"page": 362, "section": "4-42-2", "chapter": 4, "major": 42, "minor": 2, "title": "지상개폐기엘보접속재 분리·연결", "end_page": 362, "book": "electric"}, {"page": 362, "section": "4-42-3", "chapter": 4, "major": 42, "minor": 3, "title": "지상개폐기엘보접속재 절연플러그 분리·연결", "end_page": 362, "book": "electric"}, {"page": 363, "section": "4-43", "chapter": 4, "major": 43, "minor": 0, "title": "25.8kV가스절연개폐기(지중용 )엘보접속", "end_page": 363, "book": "electric"}, {"page": 363, "section": "4-43-1", "chapter": 4, "major": 43, "minor": 1, "title": "지상개폐기결로방지용 환기장치 설치", "end_page": 363, "book": "electric"}, {"page": 364, "section": "4-43-2", "chapter": 4, "major": 43, "minor": 2, "title": "지중선로 고장구간 표시기 설치", "end_page": 364, "book": "electric"}, {"page": 364, "section": "4-43-3", "chapter": 4, "major": 43, "minor": 3, "title": "조립식맨홀및기기기초대 설치", "end_page": 364, "book": "electric"}, {"page": 365, "section": "4-43-4", "chapter": 4, "major": 43, "minor": 4, "title": "지중저압접속함 설치", "end_page": 365, "book": "electric"}, {"page": 365, "section": "4-43-5", "chapter": 4, "major": 43, "minor": 5, "title": "지중저압케이블 볼트타입 접속장치 설치", "end_page": 365, "book": "electric"}, {"page": 366, "section": "4-43-6", "chapter": 4, "major": 43, "minor": 6, "title": "지중저압접속함점검", "end_page": 366, "book": "electric"}, {"page": 367, "section": "4-43-7", "chapter": 4, "major": 43, "minor": 7, "title": "배전지상기기 정밀점검", "end_page": 367, "book": "electric"}, {"page": 368, "section": "4-44", "chapter": 4, "major": 44, "minor": 0, "title": "배전지중용 표시찰설치", "end_page": 368, "book": "electric"}, {"page": 368, "section": "4-45", "chapter": 4, "major": 45, "minor": 0, "title": "지중케이블매설표시 시트설치", "end_page": 368, "book": "electric"}, {"page": 369, "section": "4-45-1", "chapter": 4, "major": 45, "minor": 1, "title": "지중케이블 보호판설치", "end_page": 369, "book": "electric"}, {"page": 369, "section": "4-45-2", "chapter": 4, "major": 45, "minor": 2, "title": "지중케이블 상추적", "end_page": 369, "book": "electric"}, {"page": 370, "section": "4-46", "chapter": 4, "major": 46, "minor": 0, "title": "지중선로 표지기 설치", "end_page": 370, "book": "electric"}, {"page": 370, "section": "4-47", "chapter": 4, "major": 47, "minor": 0, "title": "지중방수용 발포지수제 분사처리", "end_page": 370, "book": "electric"}, {"page": 371, "section": "4-48", "chapter": 4, "major": 48, "minor": 0, "title": "600VCV케이블 접속장치 설치", "end_page": 371, "book": "electric"}, {"page": 372, "section": "4-49", "chapter": 4, "major": 49, "minor": 0, "title": "저압지중인입선 전환", "end_page": 372, "book": "electric"}, {"page": 373, "section": "4-50", "chapter": 4, "major": 50, "minor": 0, "title": "절연장갑작업장비사용 전주교체", "end_page": 373, "book": "electric"}, {"page": 374, "section": "4-51", "chapter": 4, "major": 51, "minor": 0, "title": "절연장갑작업장비사용완철교체", "end_page": 374, "book": "electric"}, {"page": 375, "section": "4-52", "chapter": 4, "major": 52, "minor": 0, "title": "절연장갑작업장비사용 장주변경", "end_page": 375, "book": "electric"}, {"page": 376, "section": "4-53", "chapter": 4, "major": 53, "minor": 0, "title": "절연장갑작업장비사용 애자교체", "end_page": 376, "book": "electric"}, {"page": 377, "section": "4-54", "chapter": 4, "major": 54, "minor": 0, "title": "절연장갑작업장비사용 인하선 연결", "end_page": 377, "book": "electric"}, {"page": 378, "section": "4-55", "chapter": 4, "major": 55, "minor": 0, "title": "절연장갑작업장비사용 내오손결합애자 설치", "end_page": 378, "book": "electric"}, {"page": 379, "section": "4-56", "chapter": 4, "major": 56, "minor": 0, "title": "절연장갑작업장비사용COS교체", "end_page": 379, "book": "electric"}, {"page": 380, "section": "4-57", "chapter": 4, "major": 57, "minor": 0, "title": "절연장갑작업장비사용 LA설치", "end_page": 380, "book": "electric"}, {"page": 381, "section": "4-58", "chapter": 4, "major": 58, "minor": 0, "title": "절연장갑작업장비사용 전선처짐정도조정", "end_page": 381, "book": "electric"}, {"page": 382, "section": "4-59", "chapter": 4, "major": 59, "minor": 0, "title": "절연장갑작업장비사용점퍼선절단", "end_page": 382, "book": "electric"}, {"page": 383, "section": "4-60", "chapter": 4, "major": 60, "minor": 0, "title": "절연장갑작업장비사용 전선압축 접속", "end_page": 383, "book": "electric"}, {"page": 384, "section": "4-61", "chapter": 4, "major": 61, "minor": 0, "title": "절연장갑작업장비사용바이패스점퍼스틱(케이블)설치", "end_page": 384, "book": "electric"}, {"page": 385, "section": "4-62", "chapter": 4, "major": 62, "minor": 0, "title": "절연장갑작업장비사용 전선이선", "end_page": 385, "book": "electric"}, {"page": 386, "section": "4-62-1", "chapter": 4, "major": 62, "minor": 1, "title": "절연장갑작업장비사용 가공피뢰선 (가공지선 )설치", "end_page": 386, "book": "electric"}, {"page": 387, "section": "4-63", "chapter": 4, "major": 63, "minor": 0, "title": "충전부이격", "end_page": 387, "book": "electric"}, {"page": 387, "section": "4-64", "chapter": 4, "major": 64, "minor": 0, "title": "절연장갑자업장비사용 전주방호", "end_page": 387, "book": "electric"}, {"page": 388, "section": "4-65", "chapter": 4, "major": 65, "minor": 0, "title": "절연장갑작업장비사용충전부방호", "end_page": 388, "book": "electric"}, {"page": 389, "section": "4-66", "chapter": 4, "major": 66, "minor": 0, "title": "절연장갑작업장비사용 건축지장용 방호관", "end_page": 389, "book": "electric"}, {"page": 390, "section": "4-67", "chapter": 4, "major": 67, "minor": 0, "title": "절연장갑작업장비사용 절연커버설치", "end_page": 390, "book": "electric"}, {"page": 391, "section": "4-68", "chapter": 4, "major": 68, "minor": 0, "title": "절연장갑작업장비사용 가공배전전주 기별점검", "end_page": 391, "book": "electric"}, {"page": 392, "section": "4-68-1", "chapter": 4, "major": 68, "minor": 1, "title": "무정전장비사용변압기공법", "end_page": 392, "book": "electric"}, {"page": 393, "section": "4-68-2", "chapter": 4, "major": 68, "minor": 2, "title": "무정전장비사용바이패스케이블공법", "end_page": 393, "book": "electric"}, {"page": 394, "section": "4-68-3", "chapter": 4, "major": 68, "minor": 3, "title": "무정전장비사용 공사용개폐기공법", "end_page": 394, "book": "electric"}, {"page": 394, "section": "4-68-4", "chapter": 4, "major": 68, "minor": 4, "title": "가지지 장치를이용한 직선주무정전공법", "end_page": 394, "book": "electric"}, {"page": 395, "section": "4-68-5", "chapter": 4, "major": 68, "minor": 5, "title": "지상변압기무정전교체공법", "end_page": 395, "book": "electric"}, {"page": 396, "section": "4-68-6", "chapter": 4, "major": 68, "minor": 6, "title": "지상변압기엘보접속재 활선분리․연결", "end_page": 396, "book": "electric"}, {"page": 396, "section": "4-68-7", "chapter": 4, "major": 68, "minor": 7, "title": "단상지상변압기무정전교체", "end_page": 396, "book": "electric"}, {"page": 397, "section": "4-69", "chapter": 4, "major": 69, "minor": 0, "title": "전주계주", "end_page": 397, "book": "electric"}, {"page": 397, "section": "4-70", "chapter": 4, "major": 70, "minor": 0, "title": "충전부방호", "end_page": 397, "book": "electric"}, {"page": 398, "section": "4-71", "chapter": 4, "major": 71, "minor": 0, "title": "배전활선 애자청소", "end_page": 398, "book": "electric"}, {"page": 398, "section": "4-72", "chapter": 4, "major": 72, "minor": 0, "title": "지지선 교체", "end_page": 398, "book": "electric"}, {"page": 399, "section": "4-73", "chapter": 4, "major": 73, "minor": 0, "title": "가공배전 사선전주오름기별점검", "end_page": 399, "book": "electric"}, {"page": 399, "section": "4-74", "chapter": 4, "major": 74, "minor": 0, "title": "작업(보조)발판대설치", "end_page": 399, "book": "electric"}, {"page": 399, "section": "4-75", "chapter": 4, "major": 75, "minor": 0, "title": "항공장애표시등 설치및점검", "end_page": 399, "book": "electric"}, {"page": 400, "section": "4-76", "chapter": 4, "major": 76, "minor": 0, "title": "수목가지치기 작업", "end_page": 400, "book": "electric"}, {"page": 401, "section": "4-76-1", "chapter": 4, "major": 76, "minor": 1, "title": "수목가지치기 기계화 시공", "end_page": 401, "book": "electric"}, {"page": 402, "section": "4-77", "chapter": 4, "major": 77, "minor": 0, "title": "접지저항측정", "end_page": 402, "book": "electric"}, {"page": 402, "section": "4-78", "chapter": 4, "major": 78, "minor": 0, "title": "부하전류 및전압측정", "end_page": 402, "book": "electric"}, {"page": 403, "section": "4-79", "chapter": 4, "major": 79, "minor": 0, "title": "도입선 넣기", "end_page": 403, "book": "electric"}, {"page": 403, "section": "4-80", "chapter": 4, "major": 80, "minor": 0, "title": "배전맨홀점검", "end_page": 403, "book": "electric"}, {"page": 404, "section": "4-81", "chapter": 4, "major": 81, "minor": 0, "title": "지중케이블 연소방지제 도료도포", "end_page": 404, "book": "electric"}, {"page": 405, "section": "4-82", "chapter": 4, "major": 82, "minor": 0, "title": "지상변압기절연유 보충", "end_page": 405, "book": "electric"}, {"page": 405, "section": "4-83", "chapter": 4, "major": 83, "minor": 0, "title": "전주및지상기기의광고물제거", "end_page": 405, "book": "electric"}, {"page": 406, "section": "4-83-1", "chapter": 4, "major": 83, "minor": 1, "title": "NDISDB갱신용사진촬영", "end_page": 406, "book": "electric"}, {"page": 406, "section": "4-83-2", "chapter": 4, "major": 83, "minor": 2, "title": "지중저압회선탐사", "end_page": 408, "book": "electric"}, {"page": 409, "section": "4-84", "chapter": 4, "major": 84, "minor": 0, "title": "종합배전자동화설비", "end_page": 409, "book": "electric"}, {"page": 409, "section": "4-84-1", "chapter": 4, "major": 84, "minor": 1, "title": "서버장치", "end_page": 409, "book": "electric"}, {"page": 410, "section": "4-84-2", "chapter": 4, "major": 84, "minor": 2, "title": "이중화 저장장치 ,전환장치", "end_page": 410, "book": "electric"}, {"page": 411, "section": "4-84-3", "chapter": 4, "major": 84, "minor": 3, "title": "HMI(HumanMachineInterface:인간-기계연결)장치", "end_page": 411, "book": "electric"}, {"page": 412, "section": "4-84-4", "chapter": 4, "major": 84, "minor": 4, "title": "FEP(Front EndProcessor:전단처리 )장치", "end_page": 412, "book": "electric"}, {"page": 413, "section": "4-84-5", "chapter": 4, "major": 84, "minor": 5, "title": "응용프로그램", "end_page": 413, "book": "electric"}, {"page": 414, "section": "4-84-6", "chapter": 4, "major": 84, "minor": 6, "title": "데이터베이스구축", "end_page": 414, "book": "electric"}, {"page": 414, "section": "4-84-7", "chapter": 4, "major": 84, "minor": 7, "title": "기본도제작", "end_page": 414, "book": "electric"}, {"page": 415, "section": "4-84-8", "chapter": 4, "major": 84, "minor": 8, "title": "데이터베이스구조변경및설치", "end_page": 415, "book": "electric"}, {"page": 415, "section": "4-84-9", "chapter": 4, "major": 84, "minor": 9, "title": "데이터베이스변경및증설", "end_page": 415, "book": "electric"}, {"page": 416, "section": "4-85", "chapter": 4, "major": 85, "minor": 0, "title": "소규모배전자동화설비", "end_page": 416, "book": "electric"}, {"page": 416, "section": "4-85-1", "chapter": 4, "major": 85, "minor": 1, "title": "소규모주장치", "end_page": 416, "book": "electric"}, {"page": 417, "section": "4-85-2", "chapter": 4, "major": 85, "minor": 2, "title": "소규모주장치 이중화설비", "end_page": 417, "book": "electric"}, {"page": 418, "section": "4-85-3", "chapter": 4, "major": 85, "minor": 3, "title": "응용프로그램설치", "end_page": 418, "book": "electric"}, {"page": 418, "section": "4-85-4", "chapter": 4, "major": 85, "minor": 4, "title": "데이터베이스구축", "end_page": 418, "book": "electric"}, {"page": 419, "section": "4-85-5", "chapter": 4, "major": 85, "minor": 5, "title": "데이터베이스변경및증설", "end_page": 419, "book": "electric"}, {"page": 419, "section": "4-85-6", "chapter": 4, "major": 85, "minor": 6, "title": "TDAS데이터베이스단순속성변경", "end_page": 419, "book": "electric"}, {"page": 420, "section": "4-86", "chapter": 4, "major": 86, "minor": 0, "title": "배전자동화용 부대장치", "end_page": 420, "book": "electric"}, {"page": 420, "section": "4-86-1", "chapter": 4, "major": 86, "minor": 1, "title": "각종기기", "end_page": 420, "book": "electric"}, {"page": 421, "section": "4-86-2", "chapter": 4, "major": 86, "minor": 2, "title": "GPS수신장치", "end_page": 421, "book": "electric"}, {"page": 421, "section": "4-86-3", "chapter": 4, "major": 86, "minor": 3, "title": "현장원격운전용 PDA", "end_page": 421, "book": "electric"}, {"page": 422, "section": "4-86-4", "chapter": 4, "major": 86, "minor": 4, "title": "무정전전원장치 (UPS)설치", "end_page": 422, "book": "electric"}, {"page": 422, "section": "4-86-5", "chapter": 4, "major": 86, "minor": 5, "title": "출력장치 (프린터)설치", "end_page": 422, "book": "electric"}, {"page": 422, "section": "4-86-6", "chapter": 4, "major": 86, "minor": 6, "title": "외함설치", "end_page": 422, "book": "electric"}, {"page": 423, "section": "4-86-7", "chapter": 4, "major": 86, "minor": 7, "title": "배전자동화 TRS용게이트웨이(Gateway)", "end_page": 423, "book": "electric"}, {"page": 423, "section": "4-86-8", "chapter": 4, "major": 86, "minor": 8, "title": "배전자동화 TRS용신호변환장치 (센터측)설치", "end_page": 423, "book": "electric"}, {"page": 424, "section": "4-86-9", "chapter": 4, "major": 86, "minor": 9, "title": "배전자동화 TRS용신호변환장치(제어함 측)설치", "end_page": 424, "book": "electric"}, {"page": 425, "section": "4-86-10", "chapter": 4, "major": 86, "minor": 10, "title": "배전자동화용 TRS안테나(센터측)", "end_page": 425, "book": "electric"}, {"page": 425, "section": "4-86-11", "chapter": 4, "major": 86, "minor": 11, "title": "배전자동화CDMA용게이트웨이(Gateway)공통제어부", "end_page": 425, "book": "electric"}, {"page": 426, "section": "4-86-12", "chapter": 4, "major": 86, "minor": 12, "title": "배전자동화CDMA용HCU및HCM", "end_page": 426, "book": "electric"}, {"page": 427, "section": "4-86-13", "chapter": 4, "major": 86, "minor": 13, "title": "배전자동화CDMA용TCU장치설치", "end_page": 427, "book": "electric"}, {"page": 427, "section": "4-86-14", "chapter": 4, "major": 86, "minor": 14, "title": "배전자동화용 유선신호변환장치 설치", "end_page": 427, "book": "electric"}, {"page": 428, "section": "4-86-15", "chapter": 4, "major": 86, "minor": 15, "title": "배전자동화용광신호변환장치 (센터측)", "end_page": 428, "book": "electric"}, {"page": 428, "section": "4-86-16", "chapter": 4, "major": 86, "minor": 16, "title": "배전자동화용광신호변환장치(제어함 측)설치", "end_page": 428, "book": "electric"}, {"page": 429, "section": "4-86-17", "chapter": 4, "major": 86, "minor": 17, "title": "배전자동화용무선신호변환장치 설치", "end_page": 429, "book": "electric"}, {"page": 430, "section": "4-87", "chapter": 4, "major": 87, "minor": 0, "title": "배전자동화용 단말장치", "end_page": 430, "book": "electric"}, {"page": 430, "section": "4-87-1", "chapter": 4, "major": 87, "minor": 1, "title": "단말장치설치", "end_page": 430, "book": "electric"}, {"page": 431, "section": "4-87-2", "chapter": 4, "major": 87, "minor": 2, "title": "자동화개폐기종합연동시험", "end_page": 431, "book": "electric"}, {"page": 431, "section": "4-87-3", "chapter": 4, "major": 87, "minor": 3, "title": "자동화개폐기투입ㆍ개방시험", "end_page": 431, "book": "electric"}, {"page": 432, "section": "4-88", "chapter": 4, "major": 88, "minor": 0, "title": "개폐기제어함 및점검대", "end_page": 432, "book": "electric"}, {"page": 432, "section": "4-88-1", "chapter": 4, "major": 88, "minor": 1, "title": "제어함 설치", "end_page": 432, "book": "electric"}, {"page": 432, "section": "4-88-2", "chapter": 4, "major": 88, "minor": 2, "title": "점검대설치", "end_page": 432, "book": "electric"}, {"page": 433, "section": "4-89", "chapter": 4, "major": 89, "minor": 0, "title": "종합배전자동화설비 점검", "end_page": 433, "book": "electric"}, {"page": 433, "section": "4-89-1", "chapter": 4, "major": 89, "minor": 1, "title": "서버장치점검", "end_page": 433, "book": "electric"}, {"page": 433, "section": "4-89-2", "chapter": 4, "major": 89, "minor": 2, "title": "이중화 저장장치 ,전환장치점검", "end_page": 433, "book": "electric"}, {"page": 434, "section": "4-89-3", "chapter": 4, "major": 89, "minor": 3, "title": "HMI(HumanMachineInterface:인간-기계연결)", "end_page": 434, "book": "electric"}, {"page": 434, "section": "4-89-4", "chapter": 4, "major": 89, "minor": 4, "title": "FEP(Front EndProcessor:전단처리 )장치점검", "end_page": 434, "book": "electric"}, {"page": 435, "section": "4-89-5", "chapter": 4, "major": 89, "minor": 5, "title": "응용프로그램및데이터베이스점검", "end_page": 435, "book": "electric"}, {"page": 435, "section": "4-89-6", "chapter": 4, "major": 89, "minor": 6, "title": "DLPCube점검", "end_page": 435, "book": "electric"}, {"page": 436, "section": "4-89-7", "chapter": 4, "major": 89, "minor": 7, "title": "WallController점검", "end_page": 436, "book": "electric"}, {"page": 436, "section": "4-89-8", "chapter": 4, "major": 89, "minor": 8, "title": "VTL(Virtual Tape Library)점검", "end_page": 436, "book": "electric"}, {"page": 437, "section": "4-89-9", "chapter": 4, "major": 89, "minor": 9, "title": "FMS(FacilityManagement System)Controller점검", "end_page": 437, "book": "electric"}, {"page": 437, "section": "4-90", "chapter": 4, "major": 90, "minor": 0, "title": "소규모배전자동화설비 주장치점검", "end_page": 437, "book": "electric"}, {"page": 437, "section": "4-90-1", "chapter": 4, "major": 90, "minor": 1, "title": "소규모주장치점검", "end_page": 437, "book": "electric"}, {"page": 438, "section": "4-90-2", "chapter": 4, "major": 90, "minor": 2, "title": "소규모주장치 이중화설비점검", "end_page": 438, "book": "electric"}, {"page": 438, "section": "4-90-3", "chapter": 4, "major": 90, "minor": 3, "title": "배전자동화응용데이터베이스점검", "end_page": 438, "book": "electric"}, {"page": 439, "section": "4-90-4", "chapter": 4, "major": 90, "minor": 4, "title": "배전자동화응용PDA데이터베이스점검", "end_page": 439, "book": "electric"}, {"page": 439, "section": "4-91", "chapter": 4, "major": 91, "minor": 0, "title": "배전자동화용 통신방식별망점검", "end_page": 439, "book": "electric"}, {"page": 439, "section": "4-91-1", "chapter": 4, "major": 91, "minor": 1, "title": "배전자동화용 전용선망점검", "end_page": 439, "book": "electric"}, {"page": 440, "section": "4-91-2", "chapter": 4, "major": 91, "minor": 2, "title": "배전자동화용 TRS망점검", "end_page": 440, "book": "electric"}, {"page": 440, "section": "4-91-3", "chapter": 4, "major": 91, "minor": 3, "title": "배전자동화용무선망점검", "end_page": 440, "book": "electric"}, {"page": 441, "section": "4-91-4", "chapter": 4, "major": 91, "minor": 4, "title": "배전자동화용광통신망점검", "end_page": 441, "book": "electric"}, {"page": 441, "section": "4-92", "chapter": 4, "major": 92, "minor": 0, "title": "배전자동화용 단말장치점검", "end_page": 441, "book": "electric"}, {"page": 441, "section": "4-92-1", "chapter": 4, "major": 92, "minor": 1, "title": "단말장치점검", "end_page": 441, "book": "electric"}, {"page": 442, "section": "4-92-2", "chapter": 4, "major": 92, "minor": 2, "title": "조작부점검", "end_page": 442, "book": "electric"}, {"page": 443, "section": "4-92-3", "chapter": 4, "major": 92, "minor": 3, "title": "지중용 조작부점검", "end_page": 443, "book": "electric"}, {"page": 443, "section": "4-92-4", "chapter": 4, "major": 92, "minor": 4, "title": "리클로저 (Recloser) 단말장치(RA)점검", "end_page": 443, "book": "electric"}, {"page": 443, "section": "4-92-5", "chapter": 4, "major": 92, "minor": 5, "title": "가공용 FAS개조단말장치(FA)점검", "end_page": 443, "book": "electric"}, {"page": 444, "section": "4-92-6", "chapter": 4, "major": 92, "minor": 6, "title": "배터리 교체", "end_page": 444, "book": "electric"}, {"page": 444, "section": "4-92-7", "chapter": 4, "major": 92, "minor": 7, "title": "단말장치펌웨어업그레이드(FirmwareUpgrade)", "end_page": 444, "book": "electric"}, {"page": 445, "section": "4-93", "chapter": 4, "major": 93, "minor": 0, "title": "배전자동화 부대설비점검", "end_page": 445, "book": "electric"}, {"page": 445, "section": "4-93-1", "chapter": 4, "major": 93, "minor": 1, "title": "GPS수신장치점검", "end_page": 445, "book": "electric"}, {"page": 445, "section": "4-93-2", "chapter": 4, "major": 93, "minor": 2, "title": "현장원격운전용 PDA점검", "end_page": 445, "book": "electric"}, {"page": 446, "section": "4-93-3", "chapter": 4, "major": 93, "minor": 3, "title": "출력장치 (프린터)점검", "end_page": 446, "book": "electric"}, {"page": 446, "section": "4-93-4", "chapter": 4, "major": 93, "minor": 4, "title": "에뮬레이터 장치점검", "end_page": 446, "book": "electric"}, {"page": 447, "section": "4-93-5", "chapter": 4, "major": 93, "minor": 5, "title": "무정전전원장치 (UPS)점검", "end_page": 447, "book": "electric"}, {"page": 447, "section": "4-93-6", "chapter": 4, "major": 93, "minor": 6, "title": "항온항습 기점검", "end_page": 447, "book": "electric"}, {"page": 448, "section": "4-94", "chapter": 4, "major": 94, "minor": 0, "title": "조류정전예방선로순시", "end_page": 448, "book": "electric"}, {"page": 448, "section": "4-95", "chapter": 4, "major": 95, "minor": 0, "title": "조류둥지철거", "end_page": 448, "book": "electric"}, {"page": 449, "section": "4-96", "chapter": 4, "major": 96, "minor": 0, "title": "이동용 발전기 임시송전", "end_page": 449, "book": "electric"}, {"page": 450, "section": "4-97", "chapter": 4, "major": 97, "minor": 0, "title": "절연스틱작업", "end_page": 450, "book": "electric"}, {"page": 450, "section": "4-97-1", "chapter": 4, "major": 97, "minor": 1, "title": "절연스틱작업여건별할증률", "end_page": 450, "book": "electric"}, {"page": 451, "section": "4-97-2", "chapter": 4, "major": 97, "minor": 2, "title": "절연스틱작업바이패스케이블 공법", "end_page": 451, "book": "electric"}, {"page": 452, "section": "4-97-3", "chapter": 4, "major": 97, "minor": 3, "title": "절연스틱작업변압기공법", "end_page": 452, "book": "electric"}, {"page": 453, "section": "4-97-4", "chapter": 4, "major": 97, "minor": 4, "title": "절연스틱작업공사용개폐기공법", "end_page": 453, "book": "electric"}, {"page": 454, "section": "4-97-5", "chapter": 4, "major": 97, "minor": 5, "title": "절연스틱작업바이패스점퍼케이블 공법", "end_page": 454, "book": "electric"}, {"page": 455, "section": "4-97-6", "chapter": 4, "major": 97, "minor": 6, "title": "절연스틱작업전주방호", "end_page": 455, "book": "electric"}, {"page": 456, "section": "4-97-7", "chapter": 4, "major": 97, "minor": 7, "title": "절연스틱작업점퍼선라인포스트애자 교체", "end_page": 456, "book": "electric"}, {"page": 457, "section": "4-97-8", "chapter": 4, "major": 97, "minor": 8, "title": "절연스틱작업기계화 공간확장라인포스트애자 교체", "end_page": 457, "book": "electric"}, {"page": 458, "section": "4-97-9", "chapter": 4, "major": 97, "minor": 9, "title": "절연스틱작업기계화 공간확장어깨쇠(완철)교체", "end_page": 458, "book": "electric"}, {"page": 459, "section": "4-97-10", "chapter": 4, "major": 97, "minor": 10, "title": "절연스틱작업기계화 공간확장전선이선", "end_page": 459, "book": "electric"}, {"page": 460, "section": "4-97-11", "chapter": 4, "major": 97, "minor": 11, "title": "절연스틱작업기계화 공간확장전주교체", "end_page": 460, "book": "electric"}, {"page": 461, "section": "4-97-12", "chapter": 4, "major": 97, "minor": 12, "title": "절연스틱작업단상변대COS교체", "end_page": 461, "book": "electric"}, {"page": 462, "section": "4-97-13", "chapter": 4, "major": 97, "minor": 13, "title": "절연스틱작업위험표지판설치", "end_page": 462, "book": "electric"}, {"page": 463, "section": "4-97-14", "chapter": 4, "major": 97, "minor": 14, "title": "절연스틱작업인하선 설치", "end_page": 463, "book": "electric"}, {"page": 464, "section": "4-97-15", "chapter": 4, "major": 97, "minor": 15, "title": "절연스틱작업점퍼선절단", "end_page": 464, "book": "electric"}, {"page": 465, "section": "4-97-16", "chapter": 4, "major": 97, "minor": 16, "title": "절연스틱작업전선압축 접속", "end_page": 465, "book": "electric"}, {"page": 466, "section": "4-97-17", "chapter": 4, "major": 97, "minor": 17, "title": "절연스틱작업절연커버설치", "end_page": 466, "book": "electric"}, {"page": 467, "section": "4-97-18", "chapter": 4, "major": 97, "minor": 18, "title": "절연스틱작업충전부방호", "end_page": 467, "book": "electric"}, {"page": 468, "section": "4-97-19", "chapter": 4, "major": 97, "minor": 19, "title": "절연스틱작업활선용완철사용라인포스트애자 교체", "end_page": 468, "book": "electric"}, {"page": 469, "section": "4-97-20", "chapter": 4, "major": 97, "minor": 20, "title": "절연스틱작업활선용완철사용어깨쇠(완철)교체", "end_page": 469, "book": "electric"}, {"page": 470, "section": "4-97-21", "chapter": 4, "major": 97, "minor": 21, "title": "절연스틱작업활선용완철사용전선이선", "end_page": 470, "book": "electric"}, {"page": 471, "section": "4-97-22", "chapter": 4, "major": 97, "minor": 22, "title": "절연스틱작업활선용완철사용전주교체", "end_page": 471, "book": "electric"}, {"page": 472, "section": "4-97-23", "chapter": 4, "major": 97, "minor": 23, "title": "절연스틱작업가공배전전주 기별점검", "end_page": 472, "book": "electric"}, {"page": 473, "section": "4-97-24", "chapter": 4, "major": 97, "minor": 24, "title": "절연스틱작업건축지장용 방호관 설치", "end_page": 473, "book": "electric"}, {"page": 474, "section": "5-1", "major": 1, "minor": 0, "title": "전선관 배관", "end_page": 475, "chapter": 5, "book": "electric"}, {"page": 476, "section": "5-2", "major": 2, "minor": 0, "title": "전선관 부속품률", "end_page": 476, "chapter": 5, "book": "electric"}, {"page": 477, "section": "5-3", "major": 3, "minor": 0, "title": "박스(Box) 설치", "end_page": 477, "chapter": 5, "book": "electric"}, {"page": 478, "section": "5-3-1", "major": 3, "minor": 1, "title": "경량(건식) 벽체 보강대 설치", "end_page": 478, "chapter": 5, "book": "electric"}, {"page": 478, "section": "5-4", "major": 4, "minor": 0, "title": "풀박스(Pull Box) 설치", "end_page": 478, "chapter": 5, "book": "electric"}, {"page": 479, "section": "5-5", "major": 5, "minor": 0, "title": "시스템박스(System Box) 설치", "end_page": 479, "chapter": 5, "book": "electric"}, {"page": 480, "section": "5-6", "major": 6, "minor": 0, "title": "플로어덕트 설치", "end_page": 480, "chapter": 5, "book": "electric"}, {"page": 481, "section": "5-7", "major": 7, "minor": 0, "title": "금속덕트 설치", "end_page": 481, "chapter": 5, "book": "electric"}, {"page": 482, "section": "5-8", "major": 8, "minor": 0, "title": "케이블트레이 및 랙 설치", "end_page": 482, "chapter": 5, "book": "electric"}, {"page": 483, "section": "5-8-1", "major": 8, "minor": 1, "title": "케이블트레이 내진 버팀대 설치", "end_page": 483, "chapter": 5, "book": "electric"}, {"page": 483, "section": "5-8-2", "major": 8, "minor": 2, "title": "조립식 케이블트레이 설치", "end_page": 483, "chapter": 5, "book": "electric"}, {"page": 484, "section": "5-9", "major": 9, "minor": 0, "title": "몰딩(Molding) 설치", "end_page": 484, "chapter": 5, "book": "electric"}, {"page": 484, "section": "5-9-1", "major": 9, "minor": 1, "title": "레이스웨이 설치", "end_page": 484, "chapter": 5, "book": "electric"}, {"page": 485, "section": "5-10", "major": 10, "minor": 0, "title": "옥내배선", "end_page": 485, "chapter": 5, "book": "electric"}, {"page": 486, "section": "5-11", "major": 11, "minor": 0, "title": "전력케이블 구내 설치", "end_page": 486, "chapter": 5, "book": "electric"}, {"page": 487, "section": "5-11-1", "major": 11, "minor": 1, "title": "저압케이블 관통형 커넥터 설치", "end_page": 487, "chapter": 5, "book": "electric"}, {"page": 488, "section": "5-12", "major": 12, "minor": 0, "title": "언더카펫 케이블 (전력용 후래트케이블) 설치", "end_page": 488, "chapter": 5, "book": "electric"}, {"page": 489, "section": "5-13", "major": 13, "minor": 0, "title": "제어용 케이블 설치", "end_page": 489, "chapter": 5, "book": "electric"}, {"page": 490, "section": "5-14", "major": 14, "minor": 0, "title": "600V 비닐절연비닐시이즈케이블 평형(VVF) 설치", "end_page": 490, "chapter": 5, "book": "electric"}, {"page": 491, "section": "5-15", "major": 15, "minor": 0, "title": "600V 비닐절연비닐시이즈케이블 원형(VVR) 설치", "end_page": 491, "chapter": 5, "book": "electric"}, {"page": 492, "section": "5-16", "major": 16, "minor": 0, "title": "모선덕트 (Bus Duct) 설치", "end_page": 492, "chapter": 5, "book": "electric"}, {"page": 493, "section": "5-17", "major": 17, "minor": 0, "title": "소전류용 모선관로 (Lighting Bus/Ducts) 설치", "end_page": 493, "chapter": 5, "book": "electric"}, {"page": 494, "section": "5-18", "major": 18, "minor": 0, "title": "분전반 조립 및 설치", "end_page": 494, "chapter": 5, "book": "electric"}, {"page": 495, "section": "5-18-1", "major": 18, "minor": 1, "title": "세대분전반 설치", "end_page": 495, "chapter": 5, "book": "electric"}, {"page": 496, "section": "5-18-2", "major": 18, "minor": 2, "title": "가로등 분전반 설치", "end_page": 496, "chapter": 5, "book": "electric"}, {"page": 497, "section": "5-18-3", "major": 18, "minor": 3, "title": "세대분전반 속판 교체", "end_page": 497, "chapter": 5, "book": "electric"}, {"page": 498, "section": "5-19", "major": 19, "minor": 0, "title": "차단기 및 개폐기 설치", "end_page": 498, "chapter": 5, "book": "electric"}, {"page": 499, "section": "5-20", "major": 20, "minor": 0, "title": "저압기중차단기 설치", "end_page": 499, "chapter": 5, "book": "electric"}, {"page": 500, "section": "5-21", "major": 21, "minor": 0, "title": "전력량계 및 부속장치 설치", "end_page": 500, "chapter": 5, "book": "electric"}, {"page": 501, "section": "5-21-1", "major": 21, "minor": 1, "title": "전기사업자용 전력량계 및 부속장치 설치", "end_page": 501, "chapter": 5, "book": "electric"}, {"page": 502, "section": "5-21-2", "major": 21, "minor": 2, "title": "심야전력용 래치형 전자접촉기 설치", "end_page": 502, "chapter": 5, "book": "electric"}, {"page": 503, "section": "5-21-3", "major": 21, "minor": 3, "title": "MOF 및 CT 오차시험", "end_page": 503, "chapter": 5, "book": "electric"}, {"page": 503, "section": "5-21-4", "major": 21, "minor": 4, "title": "저압 전력량계 오차시험", "end_page": 503, "chapter": 5, "book": "electric"}, {"page": 504, "section": "5-22", "major": 22, "minor": 0, "title": "가전기구 설치", "end_page": 504, "chapter": 5, "book": "electric"}, {"page": 505, "section": "5-23", "major": 23, "minor": 0, "title": "배선기구 설치", "end_page": 506, "chapter": 5, "book": "electric"}, {"page": 507, "section": "5-24", "major": 24, "minor": 0, "title": "백열등기구 설치", "end_page": 507, "chapter": 5, "book": "electric"}, {"page": 508, "section": "5-25", "major": 25, "minor": 0, "title": "형광등기구 설치", "end_page": 508, "chapter": 5, "book": "electric"}, {"page": 509, "section": "5-25-1", "major": 25, "minor": 1, "title": "배선회로 일체형 이웃연결(연접) 설치 등기구", "end_page": 509, "chapter": 5, "book": "electric"}, {"page": 510, "section": "5-25-2", "major": 25, "minor": 2, "title": "배선회로 별도형 이웃연결(연접) 설치 등기구", "end_page": 510, "chapter": 5, "book": "electric"}, {"page": 511, "section": "5-25-3", "major": 25, "minor": 3, "title": "LED 등기구 설치", "end_page": 511, "chapter": 5, "book": "electric"}, {"page": 512, "section": "5-26", "major": 26, "minor": 0, "title": "방전등기구 (형광등 제외) 설치", "end_page": 512, "chapter": 5, "book": "electric"}, {"page": 513, "section": "5-26-1", "major": 26, "minor": 1, "title": "LED 가로등기구 설치", "end_page": 513, "chapter": 5, "book": "electric"}, {"page": 514, "section": "5-26-2", "major": 26, "minor": 2, "title": "LED 터널등기구 설치", "end_page": 514, "chapter": 5, "book": "electric"}, {"page": 515, "section": "5-26-3", "major": 26, "minor": 3, "title": "LED 보안등기구 설치", "end_page": 515, "chapter": 5, "book": "electric"}, {"page": 515, "section": "5-26-4", "major": 26, "minor": 4, "title": "LED 투광등기구 설치", "end_page": 515, "chapter": 5, "book": "electric"}, {"page": 516, "section": "5-26-5", "major": 26, "minor": 5, "title": "LED 등기구 (선ㆍ롤형) 설치", "end_page": 516, "chapter": 5, "book": "electric"}, {"page": 517, "section": "5-26-6", "major": 26, "minor": 6, "title": "팩타입 수목등 설치", "end_page": 517, "chapter": 5, "book": "electric"}, {"page": 517, "section": "5-26-7", "major": 26, "minor": 7, "title": "조명등용 센서스위치 설치", "end_page": 517, "chapter": 5, "book": "electric"}, {"page": 518, "section": "5-26-8", "major": 26, "minor": 8, "title": "보안등 (공원등) 용 차광막 설치", "end_page": 518, "chapter": 5, "book": "electric"}, {"page": 519, "section": "5-27", "major": 27, "minor": 0, "title": "Pole Light 설치", "end_page": 520, "chapter": 5, "book": "electric"}, {"page": 521, "section": "5-27-1", "major": 27, "minor": 1, "title": "가로등 기초 (기성품) 설치", "end_page": 521, "chapter": 5, "book": "electric"}, {"page": 521, "section": "5-27-2", "major": 27, "minor": 2, "title": "가로등 기초 조합 앵커볼트 설치", "end_page": 521, "chapter": 5, "book": "electric"}, {"page": 522, "section": "5-27-3", "major": 27, "minor": 3, "title": "지하매설식 가변형 지주커버 설치 (참고품)", "end_page": 522, "chapter": 5, "book": "electric"}, {"page": 522, "section": "5-27-4", "major": 27, "minor": 4, "title": "폴(Pole) 베이스 커버 설치", "end_page": 522, "chapter": 5, "book": "electric"}, {"page": 523, "section": "5-27-5", "major": 27, "minor": 5, "title": "폴(Pole) 기초 앵커볼트 캡 설치", "end_page": 523, "chapter": 5, "book": "electric"}, {"page": 523, "section": "5-27-6", "major": 27, "minor": 6, "title": "소형기초 (기성품) 인력 설치", "end_page": 523, "chapter": 5, "book": "electric"}, {"page": 524, "section": "5-27-7", "major": 27, "minor": 7, "title": "가로등 암(ARM) 설치", "end_page": 524, "chapter": 5, "book": "electric"}, {"page": 525, "section": "5-28", "major": 28, "minor": 0, "title": "조명기구 에이밍 작업", "end_page": 525, "chapter": 5, "book": "electric"}, {"page": 526, "section": "5-29", "major": 29, "minor": 0, "title": "옥내잡공사", "end_page": 526, "chapter": 5, "book": "electric"}, {"page": 527, "section": "5-29-1", "major": 29, "minor": 1, "title": "내진 스토퍼 설치", "end_page": 527, "chapter": 5, "book": "electric"}, {"page": 528, "section": "5-29-2", "major": 29, "minor": 2, "title": "벽 관통구멍 뚫기", "end_page": 530, "chapter": 5, "book": "electric"}, {"page": 531, "section": "5-30", "major": 30, "minor": 0, "title": "스마트폴 기계화 설치", "end_page": 531, "chapter": 5, "book": "electric"}, {"page": 532, "section": "5-31", "major": 31, "minor": 0, "title": "주차장 관제시설 설치", "end_page": 532, "chapter": 5, "book": "electric"}, {"page": 533, "section": "5-32", "major": 32, "minor": 0, "title": "홈콘트롤러 (종합관리시스템) 설치", "end_page": 533, "chapter": 5, "book": "electric"}, {"page": 534, "section": "5-33", "major": 33, "minor": 0, "title": "Heat Tracing System 설치", "end_page": 534, "chapter": 5, "book": "electric"}, {"page": 535, "section": "5-33-1", "major": 33, "minor": 1, "title": "스노우멜팅 (도로열선)", "end_page": 535, "chapter": 5, "book": "electric"}, {"page": 536, "section": "5-34", "major": 34, "minor": 0, "title": "정류기 설치", "end_page": 536, "chapter": 5, "book": "electric"}, {"page": 536, "section": "5-35", "major": 35, "minor": 0, "title": "전압조정기", "end_page": 536, "chapter": 5, "book": "electric"}, {"page": 537, "section": "5-36", "major": 36, "minor": 0, "title": "전동기 설치", "end_page": 537, "chapter": 5, "book": "electric"}, {"page": 538, "section": "5-37", "major": 37, "minor": 0, "title": "기동기 설치", "end_page": 538, "chapter": 5, "book": "electric"}, {"page": 539, "section": "5-38", "major": 38, "minor": 0, "title": "전동기 결선", "end_page": 539, "chapter": 5, "book": "electric"}, {"page": 540, "section": "5-39", "major": 39, "minor": 0, "title": "전동기 제어반 설치", "end_page": 540, "chapter": 5, "book": "electric"}, {"page": 541, "section": "5-40", "major": 40, "minor": 0, "title": "역률개선용 콘덴서 설치", "end_page": 541, "chapter": 5, "book": "electric"}, {"page": 542, "section": "5-41", "major": 41, "minor": 0, "title": "배선용 단자함 설치", "end_page": 542, "chapter": 5, "book": "electric"}, {"page": 543, "section": "5-42", "major": 42, "minor": 0, "title": "피뢰설비 설치", "end_page": 543, "chapter": 5, "book": "electric"}, {"page": 543, "section": "5-42-1", "major": 42, "minor": 1, "title": "피뢰침 설치", "end_page": 543, "chapter": 5, "book": "electric"}, {"page": 544, "section": "5-42-2", "major": 42, "minor": 2, "title": "수평도체 설치", "end_page": 544, "chapter": 5, "book": "electric"}, {"page": 545, "section": "5-43", "major": 43, "minor": 0, "title": "자가발전기 설치", "end_page": 545, "chapter": 5, "book": "electric"}, {"page": 546, "section": "5-44", "major": 44, "minor": 0, "title": "태양광 발전시스템 설치", "end_page": 546, "chapter": 5, "book": "electric"}, {"page": 546, "section": "5-45", "major": 45, "minor": 0, "title": "무정전 전원장치 (UPS, CVCF) 설치", "end_page": 546, "chapter": 5, "book": "electric"}, {"page": 547, "section": "5-45-1", "major": 45, "minor": 1, "title": "무정전 전원장치 (UPS, CVCF) 점검", "end_page": 547, "chapter": 5, "book": "electric"}, {"page": 547, "section": "5-45-2", "major": 45, "minor": 2, "title": "서지보호기 (SPD) 설치", "end_page": 547, "chapter": 5, "book": "electric"}, {"page": 548, "section": "5-46", "major": 46, "minor": 0, "title": "교통신호등 설치", "end_page": 555, "chapter": 5, "book": "electric"}, {"page": 556, "section": "5-46-1", "major": 46, "minor": 1, "title": "바닥형 LED 안전신호 알리미 설치", "end_page": 556, "chapter": 5, "book": "electric"}, {"page": 556, "section": "5-46-2", "major": 46, "minor": 2, "title": "시각장애인용 음향신호기 푸시버튼 설치", "end_page": 556, "chapter": 5, "book": "electric"}, {"page": 557, "section": "5-46-3", "major": 46, "minor": 3, "title": "정류장 안내단말기 (BIT)", "end_page": 557, "chapter": 5, "book": "electric"}, {"page": 558, "section": "5-46-4", "major": 46, "minor": 4, "title": "스마트쉘터 (버스정류장)", "end_page": 558, "chapter": 5, "book": "electric"}, {"page": 559, "section": "5-47", "major": 47, "minor": 0, "title": "CCTV 시스템 설치", "end_page": 560, "chapter": 5, "book": "electric"}, {"page": 561, "section": "5-47-1", "major": 47, "minor": 1, "title": "CCTV 시스템 정기점검", "end_page": 563, "chapter": 5, "book": "electric"}, {"page": 564, "section": "5-47-2", "major": 47, "minor": 2, "title": "교통신호 시스템 정기점검", "end_page": 567, "chapter": 5, "book": "electric"}, {"page": 568, "section": "5-48", "major": 48, "minor": 0, "title": "홈네트워크 및 홈오토메이션 신설", "end_page": 577, "chapter": 5, "book": "electric"}, {"page": 578, "section": "5-49", "major": 49, "minor": 0, "title": "객실관리 시스템 신설", "end_page": 579, "chapter": 5, "book": "electric"}, {"page": 580, "section": "5-50", "major": 50, "minor": 0, "title": "전력선통신 (PLC: Power Line Communication) 설비 신설", "end_page": 580, "chapter": 5, "book": "electric"}, {"page": 581, "section": "5-51", "major": 51, "minor": 0, "title": "가로등 누전회로 탐사 (참고품)", "end_page": 581, "chapter": 5, "book": "electric"}, {"page": 582, "section": "5-52", "major": 52, "minor": 0, "title": "음향 및 영상설비 신ㆍ증설 (참고품)", "end_page": 586, "chapter": 5, "book": "electric"}, {"page": 587, "section": "5-53", "major": 53, "minor": 0, "title": "가로등의 국기봉 및 배너걸이 설치", "end_page": 587, "chapter": 5, "book": "electric"}, {"page": 588, "section": "5-54", "major": 54, "minor": 0, "title": "야생동물 퇴치용 전기울타리 설치", "end_page": 588, "chapter": 5, "book": "electric"}, {"page": 589, "section": "5-55", "major": 55, "minor": 0, "title": "LED 옥외전광판 설치", "end_page": 589, "chapter": 5, "book": "electric"}, {"page": 589, "section": "5-55-1", "major": 55, "minor": 1, "title": "로고젝터 설치", "end_page": 589, "chapter": 5, "book": "electric"}, {"page": 590, "section": "5-56", "major": 56, "minor": 0, "title": "승강장 스크린도어 (PSD: Platform Screen Door) 설치", "end_page": 592, "chapter": 5, "book": "electric"}, {"page": 593, "section": "5-57", "major": 57, "minor": 0, "title": "승강장 스크린도어 (PSD) 점검", "end_page": 594, "chapter": 5, "book": "electric"}, {"page": 595, "section": "5-58", "major": 58, "minor": 0, "title": "전기방식설비 점검", "end_page": 595, "chapter": 5, "book": "electric"}, {"page": 596, "section": "5-59", "major": 59, "minor": 0, "title": "옥외 H형 주상설비 안전시설물 설치", "end_page": 596, "chapter": 5, "book": "electric"}, {"page": 661, "section": "10-1", "chapter": 10, "major": 1, "minor": 0, "title": "소화설비", "end_page": 661, "book": "electric"}, {"page": 661, "section": "10-1-1", "chapter": 10, "major": 1, "minor": 1, "title": "수동조작함 설치", "end_page": 661, "book": "electric"}, {"page": 661, "section": "10-1-2", "chapter": 10, "major": 1, "minor": 2, "title": "릴레이설치", "end_page": 661, "book": "electric"}, {"page": 662, "section": "10-1-3", "chapter": 10, "major": 1, "minor": 3, "title": "프리액션밸브결선", "end_page": 662, "book": "electric"}, {"page": 662, "section": "10-2", "chapter": 10, "major": 2, "minor": 0, "title": "경보설비", "end_page": 662, "book": "electric"}, {"page": 662, "section": "10-2-1", "chapter": 10, "major": 2, "minor": 1, "title": "스포트형감지기설치", "end_page": 662, "book": "electric"}, {"page": 663, "section": "10-2-2", "chapter": 10, "major": 2, "minor": 2, "title": "불꽃감지기설치", "end_page": 663, "book": "electric"}, {"page": 663, "section": "10-2-3", "chapter": 10, "major": 2, "minor": 3, "title": "불꽃감지기용 전원반 설치", "end_page": 663, "book": "electric"}, {"page": 664, "section": "10-2-4", "chapter": 10, "major": 2, "minor": 4, "title": "분포형감지기설치", "end_page": 664, "book": "electric"}, {"page": 664, "section": "10-2-5", "chapter": 10, "major": 2, "minor": 5, "title": "발신기 세트설치", "end_page": 664, "book": "electric"}, {"page": 665, "section": "10-2-6", "chapter": 10, "major": 2, "minor": 6, "title": "회로시험기 설치", "end_page": 665, "book": "electric"}, {"page": 665, "section": "10-2-7", "chapter": 10, "major": 2, "minor": 7, "title": "수신기 설치", "end_page": 665, "book": "electric"}, {"page": 665, "section": "10-2-8", "chapter": 10, "major": 2, "minor": 8, "title": "중계기 설치", "end_page": 665, "book": "electric"}, {"page": 666, "section": "10-2-9", "chapter": 10, "major": 2, "minor": 9, "title": "중계기 수용함 설치", "end_page": 666, "book": "electric"}, {"page": 666, "section": "10-2-10", "chapter": 10, "major": 2, "minor": 10, "title": "비상전원반 설치", "end_page": 666, "book": "electric"}, {"page": 666, "section": "10-2-11", "chapter": 10, "major": 2, "minor": 11, "title": "자동화재속보기 설치", "end_page": 666, "book": "electric"}, {"page": 667, "section": "10-2-12", "chapter": 10, "major": 2, "minor": 12, "title": "시각경보기 설치", "end_page": 667, "book": "electric"}, {"page": 667, "section": "10-2-13", "chapter": 10, "major": 2, "minor": 13, "title": "시각경보기용 전원반 설치", "end_page": 667, "book": "electric"}, {"page": 667, "section": "10-2-14", "chapter": 10, "major": 2, "minor": 14, "title": "시청각경보기 설치", "end_page": 667, "book": "electric"}, {"page": 668, "section": "10-3", "chapter": 10, "major": 3, "minor": 0, "title": "피난구조설비", "end_page": 668, "book": "electric"}, {"page": 668, "section": "10-3-1", "chapter": 10, "major": 3, "minor": 1, "title": "유도등 설치", "end_page": 668, "book": "electric"}, {"page": 668, "section": "10-3-2", "chapter": 10, "major": 3, "minor": 2, "title": "LED음성점멸유도등 설치", "end_page": 668, "book": "electric"}, {"page": 669, "section": "10-3-3", "chapter": 10, "major": 3, "minor": 3, "title": "피난유도선 설치", "end_page": 669, "book": "electric"}, {"page": 669, "section": "10-3-4", "chapter": 10, "major": 3, "minor": 4, "title": "비상조명등설치", "end_page": 669, "book": "electric"}, {"page": 670, "section": "10-4", "chapter": 10, "major": 4, "minor": 0, "title": "소화활동 설비", "end_page": 670, "book": "electric"}, {"page": 670, "section": "10-4-1", "chapter": 10, "major": 4, "minor": 1, "title": "비상콘센트설치", "end_page": 670, "book": "electric"}, {"page": 670, "section": "10-4-2", "chapter": 10, "major": 4, "minor": 2, "title": "비상콘센트함설치", "end_page": 670, "book": "electric"}, {"page": 670, "section": "10-4-3", "chapter": 10, "major": 4, "minor": 3, "title": "제연댐퍼결선", "end_page": 670, "book": "electric"}, {"section": "4-1", "page": 109, "end_page": 109, "major": 1, "minor": 0, "title": "광섬유케이블", "chapter": 4, "book": "telecom"}, {"section": "4-1-1", "page": 109, "end_page": 110, "major": 1, "minor": 1, "title": "광섬유케이블 포설", "chapter": 4, "book": "telecom"}, {"section": "4-1-2", "page": 111, "end_page": 111, "major": 1, "minor": 2, "title": "광섬유케이블 접속(성단) 및 시험", "chapter": 4, "book": "telecom"}, {"section": "4-1-3", "page": 113, "end_page": 113, "major": 1, "minor": 3, "title": "구내 광섬유케이블", "chapter": 4, "book": "telecom"}, {"section": "4-1-4", "page": 114, "end_page": 114, "major": 1, "minor": 4, "title": "광전복합케이블", "chapter": 4, "book": "telecom"}, {"section": "4-1-5", "page": 115, "end_page": 116, "major": 1, "minor": 5, "title": "광섬유 복합 낙뢰차폐선(OPGW)", "chapter": 4, "book": "telecom"}, {"section": "4-1-6", "page": 117, "end_page": 117, "major": 1, "minor": 6, "title": "광섬유복합가공중성선(OPNW)", "chapter": 4, "book": "telecom"}, {"section": "4-1-7", "page": 117, "end_page": 117, "major": 1, "minor": 7, "title": "지중케이블 금속부속품", "chapter": 4, "book": "telecom"}, {"section": "4-1-2-1", "page": 111, "end_page": 111, "major": 1, "minor": 201, "title": "광섬유케이블 접속 및 시험", "chapter": 4, "book": "telecom"}, {"section": "4-1-2-2", "page": 112, "end_page": 112, "major": 1, "minor": 202, "title": "광분배함(반) 및 성단 등", "chapter": 4, "book": "telecom"}, {"section": "4-2", "page": 118, "end_page": 118, "major": 2, "minor": 0, "title": "동축케이블", "chapter": 4, "book": "telecom"}, {"section": "4-2-1", "page": 118, "end_page": 118, "major": 2, "minor": 1, "title": "동축케이블 포설", "chapter": 4, "book": "telecom"}, {"section": "4-2-2", "page": 119, "end_page": 119, "major": 2, "minor": 2, "title": "커넥터", "chapter": 4, "book": "telecom"}, {"section": "4-3", "page": 120, "end_page": 120, "major": 3, "minor": 0, "title": "꼬임케이블", "chapter": 4, "book": "telecom"}, {"section": "4-3-1", "page": 120, "end_page": 120, "major": 3, "minor": 1, "title": "꼬임케이블 포설", "chapter": 4, "book": "telecom"}, {"section": "4-3-2", "page": 121, "end_page": 121, "major": 3, "minor": 2, "title": "커넥터 및 Jack 접속", "chapter": 4, "book": "telecom"}, {"section": "4-3-3", "page": 121, "end_page": 122, "major": 3, "minor": 3, "title": "Patch Panel 및 성단 등", "chapter": 4, "book": "telecom"}, {"section": "4-4", "page": 123, "end_page": 123, "major": 4, "minor": 0, "title": "제어케이블", "chapter": 4, "book": "telecom"}, {"section": "4-4-1", "page": 123, "end_page": 123, "major": 4, "minor": 1, "title": "제어용 케이블", "chapter": 4, "book": "telecom"}, {"section": "4-5", "page": 124, "end_page": 124, "major": 5, "minor": 0, "title": "방사형 및 누설동축케이블", "chapter": 4, "book": "telecom"}, {"section": "4-5-1", "page": 124, "end_page": 124, "major": 5, "minor": 1, "title": "방사형 및 누설동축케이블", "chapter": 4, "book": "telecom"}, {"section": "4-5-2", "page": 124, "end_page": 124, "major": 5, "minor": 2, "title": "커넥터", "chapter": 4, "book": "telecom"}, {"section": "4-6", "page": 125, "end_page": 125, "major": 6, "minor": 0, "title": "전원케이블", "chapter": 4, "book": "telecom"}, {"section": "4-6-1", "page": 125, "end_page": 125, "major": 6, "minor": 1, "title": "통신용 구내 전력케이블", "chapter": 4, "book": "telecom"}, {"section": "4-6-2", "page": 126, "end_page": 126, "major": 6, "minor": 2, "title": "통신용 전력케이블 직선접속", "chapter": 4, "book": "telecom"}, {"section": "4-6-3", "page": 127, "end_page": 127, "major": 6, "minor": 3, "title": "통신용 전력케이블 단말처리", "chapter": 4, "book": "telecom"}, {"section": "4-7", "page": 128, "end_page": 128, "major": 7, "minor": 0, "title": "시내케이블", "chapter": 4, "book": "telecom"}, {"section": "4-7-1", "page": 128, "end_page": 128, "major": 7, "minor": 1, "title": "지중 및 가공케이블", "chapter": 4, "book": "telecom"}, {"section": "4-7-2", "page": 129, "end_page": 129, "major": 7, "minor": 2, "title": "시내케이블 심선 보통접속", "chapter": 4, "book": "telecom"}, {"section": "4-7-3", "page": 130, "end_page": 130, "major": 7, "minor": 3, "title": "소대시내케이블 보통접속", "chapter": 4, "book": "telecom"}, {"section": "4-7-4", "page": 130, "end_page": 130, "major": 7, "minor": 4, "title": "케이블 절체", "chapter": 4, "book": "telecom"}, {"section": "4-7-5", "page": 132, "end_page": 132, "major": 7, "minor": 5, "title": "케이블 외피접속", "chapter": 4, "book": "telecom"}, {"section": "4-7-6", "page": 134, "end_page": 134, "major": 7, "minor": 6, "title": "케이블 국내성단", "chapter": 4, "book": "telecom"}, {"section": "4-7-2-1", "page": 129, "end_page": 129, "major": 7, "minor": 201, "title": "심선개별 보통접속", "chapter": 4, "book": "telecom"}, {"section": "4-7-2-2", "page": 129, "end_page": 129, "major": 7, "minor": 202, "title": "25회선 심선접속자(커넥터)에 의한 심선 보통접속", "chapter": 4, "book": "telecom"}, {"section": "4-7-4-1", "page": 130, "end_page": 130, "major": 7, "minor": 401, "title": "1, 5회선 심선접속자(커넥터)에 의한 절체", "chapter": 4, "book": "telecom"}, {"section": "4-7-4-2", "page": 131, "end_page": 131, "major": 7, "minor": 402, "title": "25회선 심선접속자(커넥터)에 의한 절체", "chapter": 4, "book": "telecom"}, {"section": "4-7-5-1", "page": 132, "end_page": 132, "major": 7, "minor": 501, "title": "열수축관에 의한 케이블 외피접속", "chapter": 4, "book": "telecom"}, {"section": "4-7-5-2", "page": 132, "end_page": 132, "major": 7, "minor": 502, "title": "열수축관에 의한 격벽용 케이블 외피접속", "chapter": 4, "book": "telecom"}, {"section": "4-7-5-3", "page": 133, "end_page": 133, "major": 7, "minor": 503, "title": "접속관(조립식, 케이블) 외피접속", "chapter": 4, "book": "telecom"}, {"section": "4-8", "page": 135, "end_page": 135, "major": 8, "minor": 0, "title": "음향 및 영상케이블", "chapter": 4, "book": "telecom"}, {"section": "4-8-1", "page": 135, "end_page": 135, "major": 8, "minor": 1, "title": "음향 및 영상케이블", "chapter": 4, "book": "telecom"}, {"section": "4-8-2", "page": 136, "end_page": 136, "major": 8, "minor": 2, "title": "FR 케이블 접속 및 성단", "chapter": 4, "book": "telecom"}, {"section": "4-9", "page": 137, "end_page": 137, "major": 9, "minor": 0, "title": "인입선(점퍼선)", "chapter": 4, "book": "telecom"}, {"section": "4-9-1", "page": 137, "end_page": 137, "major": 9, "minor": 1, "title": "FTTH 인입선", "chapter": 4, "book": "telecom"}, {"section": "4-9-2", "page": 137, "end_page": 137, "major": 9, "minor": 2, "title": "점퍼선 구성품", "chapter": 4, "book": "telecom"}, {"section": "4-9-3", "page": 137, "end_page": 137, "major": 9, "minor": 3, "title": "옥외 꼬임케이블 인입선", "chapter": 4, "book": "telecom"}, {"section": "4-10", "page": 138, "end_page": 138, "major": 10, "minor": 0, "title": "PVC케이블", "chapter": 4, "book": "telecom"}, {"section": "4-11", "page": 139, "end_page": 139, "major": 11, "minor": 0, "title": "케이블 부속설비", "chapter": 4, "book": "telecom"}, {"section": "4-11-1", "page": 139, "end_page": 139, "major": 11, "minor": 1, "title": "케이블 절단과 공드럼 해체", "chapter": 4, "book": "telecom"}, {"section": "4-11-2", "page": 139, "end_page": 139, "major": 11, "minor": 2, "title": "케이블 보호", "chapter": 4, "book": "telecom"}, {"section": "4-11-3", "page": 139, "end_page": 139, "major": 11, "minor": 3, "title": "통신케이블 보호용 부대공정", "chapter": 4, "book": "telecom"}, {"section": "4-11-4", "page": 140, "end_page": 140, "major": 11, "minor": 4, "title": "공기압력 자동감시장치", "chapter": 4, "book": "telecom"}, {"section": "4-11-5", "page": 140, "end_page": 140, "major": 11, "minor": 5, "title": "시내케이블 공기주입시설(건조공기) (삭제)", "chapter": 4, "book": "telecom"}, {"section": "4-11-6", "page": 140, "end_page": 140, "major": 11, "minor": 6, "title": "중화트랜스", "chapter": 4, "book": "telecom"}, {"section": "4-11-7", "page": 140, "end_page": 140, "major": 11, "minor": 7, "title": "수목가지치기", "chapter": 4, "book": "telecom"}, {"section": "4-11-8", "page": 141, "end_page": 141, "major": 11, "minor": 8, "title": "통신케이블 접속방호함", "chapter": 4, "book": "telecom"}, {"section": "4-11-9", "page": 141, "end_page": 141, "major": 11, "minor": 9, "title": "공중전화", "chapter": 4, "book": "telecom"}, {"section": "4-11-4-1", "page": 140, "end_page": 140, "major": 11, "minor": 401, "title": "주장치(건조공기) (삭제, 2023.1.1. 시행)", "chapter": 4, "book": "telecom"}, {"section": "4-11-4-2", "page": 140, "end_page": 140, "major": 11, "minor": 402, "title": "보조장치(건조공기) (삭제, 2023.1.1. 시행)", "chapter": 4, "book": "telecom"}, {"section": "4-11-4-3", "page": 140, "end_page": 140, "major": 11, "minor": 403, "title": "검출기(건조공기) (삭제, 2023.1.1. 시행)", "chapter": 4, "book": "telecom"}, {"section": "4-11-9-1", "page": 141, "end_page": 141, "major": 11, "minor": 901, "title": "기기신설", "chapter": 4, "book": "telecom"}, {"section": "4-11-9-2", "page": 141, "end_page": 141, "major": 11, "minor": 902, "title": "개폐기 및 함체", "chapter": 4, "book": "telecom"}, {"section": "4-11-9-3", "page": 142, "end_page": 142, "major": 11, "minor": 903, "title": "부스", "chapter": 4, "book": "telecom"}, {"section": "5-1", "page": 145, "end_page": 146, "major": 1, "minor": 0, "title": "기초설치", "chapter": 5, "book": "telecom"}, {"section": "5-1-1", "page": 145, "end_page": 146, "major": 1, "minor": 1, "title": "기초설치 (공통)", "chapter": 5, "book": "telecom"}, {"section": "5-2", "page": 147, "end_page": 147, "major": 2, "minor": 0, "title": "사설 교환설비", "chapter": 5, "book": "telecom"}, {"section": "5-2-1", "page": 147, "end_page": 147, "major": 2, "minor": 1, "title": "사설교환기", "chapter": 5, "book": "telecom"}, {"section": "5-3", "page": 148, "end_page": 149, "major": 3, "minor": 0, "title": "전자식 교환설비", "chapter": 5, "book": "telecom"}, {"section": "5-3-1", "page": 148, "end_page": 148, "major": 3, "minor": 1, "title": "액세스 G/W", "chapter": 5, "book": "telecom"}, {"section": "5-3-2", "page": 149, "end_page": 149, "major": 3, "minor": 2, "title": "전자교환기 (TDX-1A/B) (삭제, 2023.1.1. 시행)", "chapter": 5, "book": "telecom"}, {"section": "5-3-3", "page": 149, "end_page": 149, "major": 3, "minor": 3, "title": "전자교환기 (TDX-10) (삭제, 2023.1.1. 시행)", "chapter": 5, "book": "telecom"}, {"section": "5-3-4", "page": 149, "end_page": 149, "major": 3, "minor": 4, "title": "전자교환기 (TDX-100) (삭제, 2023.1.1. 시행)", "chapter": 5, "book": "telecom"}, {"section": "5-3-5", "page": 149, "end_page": 149, "major": 3, "minor": 5, "title": "전자교환기 (AXE-10) (삭제, 2023.1.1. 시행)", "chapter": 5, "book": "telecom"}, {"section": "5-3-6", "page": 149, "end_page": 149, "major": 3, "minor": 6, "title": "전자교환기 (5ESS) (삭제, 2023.1.1. 시행)", "chapter": 5, "book": "telecom"}, {"section": "5-4", "page": 149, "end_page": 149, "major": 4, "minor": 0, "title": "기타 교환설비", "chapter": 5, "book": "telecom"}, {"section": "5-4-1", "page": 149, "end_page": 149, "major": 4, "minor": 1, "title": "가입자선로 집중운용보전시스템 (SLMOS/LCR) (삭제)", "chapter": 5, "book": "telecom"}, {"section": "5-4-2", "page": 149, "end_page": 149, "major": 4, "minor": 2, "title": "집단전화교환기 (TDX-CPS) (삭제)", "chapter": 5, "book": "telecom"}, {"section": "5-4-3", "page": 149, "end_page": 149, "major": 4, "minor": 3, "title": "자동호 분배장치 (TDX-ACD) (삭제)", "chapter": 5, "book": "telecom"}, {"section": "5-4-4", "page": 149, "end_page": 149, "major": 4, "minor": 4, "title": "통신처리시스템 (ICPS) (삭제)", "chapter": 5, "book": "telecom"}, {"section": "5-4-5", "page": 149, "end_page": 149, "major": 4, "minor": 5, "title": "공중기업통신망 (CO-LAN)", "chapter": 5, "book": "telecom"}, {"section": "5-4-6", "page": 149, "end_page": 149, "major": 4, "minor": 6, "title": "ATM 교환기", "chapter": 5, "book": "telecom"}, {"section": "5-4-5-1", "page": 149, "end_page": 149, "major": 4, "minor": 51, "title": "데이터 교환기 (DKN) (삭제)", "chapter": 5, "book": "telecom"}, {"section": "5-4-5-2", "page": 149, "end_page": 149, "major": 4, "minor": 52, "title": "원격교환기 (MPC) (삭제)", "chapter": 5, "book": "telecom"}, {"section": "5-4-5-3", "page": 149, "end_page": 149, "major": 4, "minor": 53, "title": "단말기 다중화장치 (SAM64) (삭제)", "chapter": 5, "book": "telecom"}, {"section": "5-4-5-4", "page": 149, "end_page": 149, "major": 4, "minor": 54, "title": "음성데이터 다중화 장치 (VDM) (삭제)", "chapter": 5, "book": "telecom"}, {"section": "5-4-6-1", "page": 149, "end_page": 149, "major": 4, "minor": 61, "title": "ATM 중계교환기 (삭제)", "chapter": 5, "book": "telecom"}, {"section": "5-4-6-2", "page": 149, "end_page": 149, "major": 4, "minor": 62, "title": "ATM 가입자교환기 (삭제)", "chapter": 5, "book": "telecom"}, {"section": "5-4-6-3", "page": 149, "end_page": 149, "major": 4, "minor": 63, "title": "ATM ACE2000 교환기 (삭제)", "chapter": 5, "book": "telecom"}];
+
+const CHAPTER_NAMES = {
+  'electric-4': '【전기】제4장 배전설비공사',
+  'electric-5': '【전기】제5장 내선설비공사',
+  'electric-10': '【전기】제10장 소방전기설비공사',
+  'telecom-4': '【통신】제4장 통신케이블공사',
+  'telecom-5': '【통신】제5장 교환설비공사'
+};
+
+const PAGE_DIRS = { 'electric': 'pages', 'telecom': 'telecom_pages' };
+
+const sidebar = document.getElementById('sidebar');
+const viewer = document.getElementById('viewer');
+const searchInput = document.getElementById('searchInput');
+const totalCount = document.getElementById('totalCount');
+const ecCount = document.getElementById('ecCount');
+const tcCount = document.getElementById('tcCount');
+const visibleCount = document.getElementById('visibleCount');
+
+totalCount.textContent = SECTIONS.length;
+ecCount.textContent = SECTIONS.filter(s => s.book === 'electric').length;
+tcCount.textContent = SECTIONS.filter(s => s.book === 'telecom').length;
+
+let activeBook = 'all';
+let activeChapter = 'all';
+
+// Active annotation reference for keyboard shortcuts
+let activeAnno = null;
+
+// Global drawing state
+const drawState = {
+  color: '#ffd400',
+  size: 6,
+  opacity: 0.5,
+  tool: 'highlighter'
+};
+
+const OPACITY_SCALE = 0.5;
+
+function setActiveAnno(anno) {
+  if (activeAnno && activeAnno.wrapper) activeAnno.wrapper.classList.remove('active-anno');
+  activeAnno = anno;
+  if (activeAnno && activeAnno.wrapper) activeAnno.wrapper.classList.add('active-anno');
+}
+
+function buildSidebar() {
+  sidebar.innerHTML = '';
+  let lastKey = null;
+  SECTIONS.forEach((s, idx) => {
+    const key = s.book + '-' + s.chapter;
+    if (key !== lastKey) {
+      const d = document.createElement('div');
+      d.className = 'chapter-divider' + (s.book === 'telecom' ? ' telecom' : '');
+      d.dataset.book = s.book;
+      d.dataset.chapter = s.chapter;
+      d.textContent = CHAPTER_NAMES[key] || ('제' + s.chapter + '장');
+      sidebar.appendChild(d);
+      lastKey = key;
+    }
+    const div = document.createElement('div');
+    div.className = 'item' + (s.minor ? ' sub' : '') + (s.book === 'telecom' ? ' telecom' : '');
+    div.dataset.idx = idx;
+    div.dataset.book = s.book;
+    div.dataset.chapter = s.chapter;
+    div.dataset.search = (s.section + ' ' + s.title).toLowerCase();
+    div.innerHTML = '<span class="id">' + s.section + '</span><span class="title">' + s.title + '</span><span class="page">p.' + s.page + '</span>';
+    div.addEventListener('click', () => showSection(idx));
+    sidebar.appendChild(div);
+  });
+  applyFilter();
+}
+
+function updateChapterTabs() {
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    const bookAttr = btn.dataset.book;
+    if (!bookAttr || activeBook === 'all' || bookAttr === activeBook) btn.classList.remove('hidden');
+    else btn.classList.add('hidden');
+  });
+  const activeTabEl = document.querySelector('.tab-btn.active');
+  if (activeTabEl && activeTabEl.classList.contains('hidden')) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.tab-btn[data-chapter="all"]').classList.add('active');
+    activeChapter = 'all';
+  }
+}
+
+function applyFilter() {
+  const q = searchInput.value.trim().toLowerCase();
+  let any = false;
+  sidebar.querySelectorAll('.chapter-divider').forEach(d => {
+    const bookMatch = (activeBook === 'all' || d.dataset.book === activeBook);
+    const chapterMatch = (activeChapter === 'all' || d.dataset.chapter === activeChapter);
+    if (bookMatch && chapterMatch) d.classList.remove('hidden');
+    else d.classList.add('hidden');
+  });
+  sidebar.querySelectorAll('.item').forEach(el => {
+    const bookMatch = (activeBook === 'all' || el.dataset.book === activeBook);
+    const chapterMatch = (activeChapter === 'all' || el.dataset.chapter === activeChapter);
+    const queryMatch = (!q || el.dataset.search.includes(q));
+    if (bookMatch && chapterMatch && queryMatch) { el.classList.remove('hidden'); any = true; }
+    else el.classList.add('hidden');
+  });
+  visibleCount.textContent = sidebar.querySelectorAll('.item:not(.hidden)').length + '개 표시';
+  const noRes = sidebar.querySelector('.no-results');
+  if (noRes) noRes.remove();
+  if (!any) {
+    const div = document.createElement('div');
+    div.className = 'no-results';
+    div.textContent = '검색 결과가 없습니다.';
+    sidebar.appendChild(div);
+  }
+}
+
+function showSection(idx) {
+  setActiveAnno(null); // reset on navigation
+  sidebar.querySelectorAll('.item').forEach(el => el.classList.remove('active'));
+  const activeEl = sidebar.querySelector('.item[data-idx="' + idx + '"]');
+  if (activeEl) {
+    activeEl.classList.add('active');
+    activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  const s = SECTIONS[idx];
+  viewer.innerHTML = '';
+  const header = document.createElement('div');
+  header.className = 'section-header' + (s.book === 'telecom' ? ' telecom' : '');
+  const bookLabel = s.book === 'telecom' ? '통신' : '전기';
+  const chapterLabel = '제' + s.chapter + '장';
+  header.innerHTML = '<span class="sec-id">[' + bookLabel + '·' + chapterLabel + '] ' + s.section + '</span>' + s.title + ' <span style="float:right;font-weight:400;font-size:12px;color:#666">p.' + s.page + (s.end_page > s.page ? ' ~ ' + s.end_page : '') + '</span>';
+  viewer.appendChild(header);
+  const dir = PAGE_DIRS[s.book] || 'pages';
+  for (let p = s.page; p <= s.end_page; p++) {
+    viewer.appendChild(createPageBlock(p, dir, s));
+  }
+  viewer.scrollTop = 0;
+}
+
+function createPageBlock(p, dir, s) {
+  const block = document.createElement('div');
+  block.className = 'page-block';
+
+  const label = document.createElement('div');
+  label.className = 'page-label';
+  label.textContent = 'PDF Page ' + p;
+  block.appendChild(label);
+  block.appendChild(document.createElement('br'));
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'page-wrapper';
+
+  const img = document.createElement('img');
+  img.src = dir + '/p-' + p + '.jpg';
+  img.alt = 'page ' + p;
+  img.loading = 'lazy';
+
+  const canvas = document.createElement('canvas');
+  wrapper.appendChild(img);
+  wrapper.appendChild(canvas);
+
+  const actions = document.createElement('div');
+  actions.className = 'page-actions';
+  actions.innerHTML = '<button class="undo" title="실행취소 (Ctrl+Z)">↶</button><button class="clear" title="전체지우기 (Del)">🗑️</button><button class="dl-btn" title="이미지 다운로드">💾</button>';
+  wrapper.appendChild(actions);
+
+  block.appendChild(wrapper);
+
+  const setup = () => setupAnnotation(img, canvas, actions, wrapper, p, s);
+  if (img.complete && img.naturalWidth > 0) setup();
+  else img.addEventListener('load', setup);
+
+  return block;
+}
+
+function setupAnnotation(img, canvas, actions, wrapper, pageNum, sec) {
+  canvas.width = img.naturalWidth;
+  canvas.height = img.naturalHeight;
+  const ctx = canvas.getContext('2d');
+
+  const local = {
+    drawing: false, history: [],
+    lastX: 0, lastY: 0,
+    shiftMode: false,
+    shiftAnchorX: 0, shiftAnchorY: 0,
+    preShiftSnapshot: null
+  };
+
+  function getCoords(clientX, clientY) {
+    const rect = canvas.getBoundingClientRect();
+    const sx = canvas.width / rect.width;
+    const sy = canvas.height / rect.height;
+    return { x: (clientX - rect.left) * sx, y: (clientY - rect.top) * sy };
+  }
+
+  function saveState() {
+    try {
+      local.history.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+      if (local.history.length > 50) local.history.shift();
+    } catch (e) {}
+  }
+
+  function captureSnapshot() {
+    try { return ctx.getImageData(0, 0, canvas.width, canvas.height); }
+    catch(e) { return null; }
+  }
+
+  function applyStyle() {
+    if (drawState.tool === 'eraser') {
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = drawState.size * 3;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+    } else if (drawState.tool === 'highlighter') {
+      // Highlighter: square/chisel tip
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = drawState.opacity * OPACITY_SCALE;
+      ctx.strokeStyle = drawState.color;
+      ctx.lineWidth = drawState.size * 3;
+      ctx.lineCap = 'butt';
+      ctx.lineJoin = 'miter';
+      ctx.miterLimit = 2;
+    } else {
+      // Pen: round tip
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = drawState.opacity * OPACITY_SCALE;
+      ctx.strokeStyle = drawState.color;
+      ctx.lineWidth = drawState.size;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+    }
+  }
+
+  function doUndo() {
+    if (local.history.length > 0) {
+      const prev = local.history.pop();
+      ctx.putImageData(prev, 0, 0);
+    }
+  }
+  function doClear(withConfirm) {
+    if (withConfirm && !confirm('이 페이지의 모든 표시를 지우시겠습니까?')) return;
+    saveState();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+
+  function startDraw(cx, cy, isShift) {
+    local.drawing = true;
+    saveState();
+    const { x, y } = getCoords(cx, cy);
+    local.lastX = x; local.lastY = y;
+    local.shiftMode = false;
+    local.preShiftSnapshot = null;
+    applyStyle();
+    ctx.beginPath();
+    if (drawState.tool === 'highlighter') {
+      // Draw initial dot as a small rectangle (chisel tip)
+      const half = ctx.lineWidth / 2;
+      ctx.fillStyle = drawState.color;
+      const prevAlpha = ctx.globalAlpha;
+      ctx.fillRect(x - half, y - half, ctx.lineWidth, ctx.lineWidth);
+      ctx.globalAlpha = prevAlpha;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+    } else {
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + 0.01, y + 0.01);
+      ctx.stroke();
+    }
+    if (isShift) {
+      local.shiftMode = true;
+      local.shiftAnchorX = x;
+      local.shiftAnchorY = y;
+      local.preShiftSnapshot = captureSnapshot();
+    }
+  }
+
+  function moveDraw(cx, cy, isShift) {
+    if (!local.drawing) return;
+    const { x, y } = getCoords(cx, cy);
+
+    if (isShift && !local.shiftMode) {
+      local.shiftMode = true;
+      local.shiftAnchorX = local.lastX;
+      local.shiftAnchorY = local.lastY;
+      local.preShiftSnapshot = captureSnapshot();
+    } else if (!isShift && local.shiftMode) {
+      local.shiftMode = false;
+      local.preShiftSnapshot = null;
+      applyStyle();
+      ctx.beginPath();
+      ctx.moveTo(local.lastX, local.lastY);
+    }
+
+    if (local.shiftMode) {
+      if (local.preShiftSnapshot) ctx.putImageData(local.preShiftSnapshot, 0, 0);
+      const dx = x - local.shiftAnchorX;
+      const dy = y - local.shiftAnchorY;
+      let endX = x, endY = y;
+      if (Math.abs(dx) >= Math.abs(dy)) endY = local.shiftAnchorY;
+      else endX = local.shiftAnchorX;
+      applyStyle();
+      ctx.beginPath();
+      ctx.moveTo(local.shiftAnchorX, local.shiftAnchorY);
+      ctx.lineTo(endX, endY);
+      ctx.stroke();
+      local.lastX = endX;
+      local.lastY = endY;
+    } else {
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      local.lastX = x;
+      local.lastY = y;
+    }
+  }
+
+  function endDraw() {
+    local.drawing = false;
+    local.shiftMode = false;
+    local.preShiftSnapshot = null;
+  }
+
+  function activate() {
+    setActiveAnno({ doUndo, doClear, wrapper });
+  }
+
+  // Auto-activate first canvas so keyboard shortcuts work without clicking
+  if (!activeAnno) activate();
+  // Also activate on hover - whatever page user looks at becomes active
+  canvas.addEventListener('mouseenter', activate);
+
+  canvas.addEventListener('mousedown', (e) => { e.preventDefault(); activate(); startDraw(e.clientX, e.clientY, e.shiftKey); });
+  canvas.addEventListener('mousemove', (e) => moveDraw(e.clientX, e.clientY, e.shiftKey));
+  canvas.addEventListener('mouseup', endDraw);
+  canvas.addEventListener('mouseleave', endDraw);
+  canvas.addEventListener('touchstart', (e) => { e.preventDefault(); activate(); const t = e.touches[0]; startDraw(t.clientX, t.clientY, false); });
+  canvas.addEventListener('touchmove', (e) => { e.preventDefault(); const t = e.touches[0]; moveDraw(t.clientX, t.clientY, false); });
+  canvas.addEventListener('touchend', endDraw);
+
+  actions.querySelector('.undo').addEventListener('click', () => { activate(); doUndo(); });
+  actions.querySelector('.clear').addEventListener('click', () => { activate(); doClear(true); });
+  actions.querySelector('.dl-btn').addEventListener('click', async () => {
+    activate();
+    const btn = actions.querySelector('.dl-btn');
+    const origText = btn.textContent;
+    btn.textContent = '⏳';
+    btn.disabled = true;
+    try {
+      const bookTag = sec.book === 'telecom' ? '통신' : '전기';
+      const fileName = bookTag + '_' + sec.section + '_p' + pageNum + '.png';
+
+      // Try multiple methods to load image without tainting the canvas
+      const cleanImg = await tryLoadCleanImage(img.src);
+
+      const out = document.createElement('canvas');
+      out.width = (cleanImg && cleanImg.naturalWidth) || img.naturalWidth;
+      out.height = (cleanImg && cleanImg.naturalHeight) || img.naturalHeight;
+      const octx = out.getContext('2d');
+
+      let downloadable = null;
+      let mode = '';
+
+      if (cleanImg) {
+        // We have a clean copy of the image - composite and download
+        octx.drawImage(cleanImg, 0, 0);
+        octx.drawImage(canvas, 0, 0);
+        try {
+          downloadable = await canvasToBlob(out);
+          mode = 'full';
+        } catch (e) { console.warn('toBlob with clean image failed:', e); }
+      }
+
+      if (!downloadable) {
+        // Try direct (tainted) anyway - some browsers may allow it
+        try {
+          const out2 = document.createElement('canvas');
+          out2.width = img.naturalWidth;
+          out2.height = img.naturalHeight;
+          const ctx2 = out2.getContext('2d');
+          ctx2.drawImage(img, 0, 0);
+          ctx2.drawImage(canvas, 0, 0);
+          downloadable = await canvasToBlob(out2);
+          mode = 'full';
+        } catch (e) { console.warn('direct composite failed:', e); }
+      }
+
+      if (!downloadable) {
+        // Last resort: download annotations only (clean canvas) or open both
+        const choice = confirm(
+          '브라우저 보안 정책으로 인해 원본 페이지와 합성한 이미지를 만들 수 없습니다.\n\n' +
+          '확인을 누르면: 색칠한 부분만 투명 PNG로 다운로드합니다.\n' +
+          '취소를 누르면: 다운로드를 중단합니다.\n\n' +
+          '완전한 합성본이 필요하면 Win+Shift+S로 화면을 캡처하거나, ' +
+          '로컬 웹서버를 통해 HTML을 열어주세요.'
+        );
+        if (choice) {
+          downloadable = await canvasToBlob(canvas);
+          mode = 'annotations';
+        } else {
+          return;
+        }
+      }
+
+      const url = URL.createObjectURL(downloadable);
+      const dlName = mode === 'annotations'
+        ? (bookTag + '_' + sec.section + '_p' + pageNum + '_색칠만.png')
+        : fileName;
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = dlName;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    } catch (e) {
+      console.error(e);
+      alert('이미지 다운로드 중 오류가 발생했습니다.\n오류: ' + e.message);
+    } finally {
+      btn.textContent = origText;
+      btn.disabled = false;
+    }
+  });
+}
+
+
+// ===== Helper functions for download (cross-browser, file:// compatible) =====
+function imageFromBlob(blob) {
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(blob);
+    const im = new Image();
+    im.onload = () => { res(im); setTimeout(() => URL.revokeObjectURL(url), 5000); };
+    im.onerror = (e) => { URL.revokeObjectURL(url); rej(e); };
+    im.src = url;
+  });
+}
+function imageFromSrc(src) {
+  return new Promise((res, rej) => {
+    const im = new Image();
+    im.onload = () => res(im);
+    im.onerror = rej;
+    im.src = src;
+  });
+}
+function arrayBufferToBase64(buf) {
+  const bytes = new Uint8Array(buf);
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
+function xhrArrayBuffer(url) {
+  return new Promise((res, rej) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.responseType = 'arraybuffer';
+    xhr.onload = () => {
+      if ((xhr.status === 200 || xhr.status === 0) && xhr.response) res(xhr.response);
+      else rej(new Error('XHR status: ' + xhr.status));
+    };
+    xhr.onerror = () => rej(new Error('XHR network error'));
+    xhr.send();
+  });
+}
+function canvasToBlob(c) {
+  return new Promise((resolve, reject) => {
+    try {
+      c.toBlob((b) => b ? resolve(b) : reject(new Error('toBlob returned null')), 'image/png');
+    } catch (e) { reject(e); }
+  });
+}
+async function tryLoadCleanImage(src) {
+  // Method 1: fetch -> blob -> Image
+  try {
+    const resp = await fetch(src);
+    if (resp.ok || resp.status === 0) {
+      const blob = await resp.blob();
+      if (blob.size > 0) return await imageFromBlob(blob);
+    }
+  } catch (e) { console.debug('fetch failed:', e.message); }
+
+  // Method 2: XHR -> arraybuffer -> base64 data URL -> Image (same-origin via data:)
+  try {
+    const buf = await xhrArrayBuffer(src);
+    const b64 = arrayBufferToBase64(buf);
+    return await imageFromSrc('data:image/jpeg;base64,' + b64);
+  } catch (e) { console.debug('XHR failed:', e.message); }
+
+  // Method 3: Image with crossOrigin (works only if server sends CORS)
+  try {
+    return await new Promise((res, rej) => {
+      const im = new Image();
+      im.crossOrigin = 'anonymous';
+      im.onload = () => res(im);
+      im.onerror = rej;
+      im.src = src;
+    });
+  } catch (e) { console.debug('crossOrigin failed:', e.message); }
+
+  return null;
+}
+
+document.querySelectorAll('.book-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.book-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeBook = btn.dataset.book;
+    updateChapterTabs();
+    applyFilter();
+    sidebar.scrollTop = 0;
+  });
+});
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeChapter = btn.dataset.chapter;
+    applyFilter();
+    sidebar.scrollTop = 0;
+  });
+});
+
+searchInput.addEventListener('input', applyFilter);
+searchInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    searchInput.value = '';
+    applyFilter();
+  }
+});
+
+// Floating toolbar event handlers
+const floatTB = document.getElementById('floatToolbar');
+floatTB.querySelectorAll('.swatch').forEach(sw => {
+  sw.addEventListener('click', () => {
+    floatTB.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+    sw.classList.add('active');
+    drawState.color = sw.dataset.color;
+    if (drawState.tool === 'eraser') {
+      setTool('highlighter');
+    }
+  });
+});
+
+function setTool(name) {
+  drawState.tool = name;
+  document.body.dataset.tool = name;
+  floatTB.querySelectorAll('.tool').forEach(t => t.classList.remove('active'));
+  const btn = floatTB.querySelector('.tool[data-tool="' + name + '"]');
+  if (btn) btn.classList.add('active');
+}
+
+floatTB.querySelectorAll('.tool').forEach(btn => {
+  btn.addEventListener('click', () => setTool(btn.dataset.tool));
+});
+document.getElementById('ftSize').addEventListener('change', (e) => {
+  drawState.size = parseFloat(e.target.value);
+});
+const opacityInput = document.getElementById('ftOpacity');
+const opacityValLabel = document.getElementById('ftOpVal');
+opacityInput.addEventListener('input', (e) => {
+  const v = parseInt(e.target.value, 10);
+  drawState.opacity = v / 100;
+  opacityValLabel.textContent = v + '%';
+});
+document.getElementById('ftCollapse').addEventListener('click', () => {
+  floatTB.classList.toggle('collapsed');
+  const btn = document.getElementById('ftCollapse');
+  btn.textContent = floatTB.classList.contains('collapsed') ? '▴ 펼치기' : '▾ 접기';
+});
+
+// Global keyboard shortcuts: Ctrl+Z = undo, Del = clear page
+document.addEventListener('keydown', (e) => {
+  const t = e.target;
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z' || e.key === 'ㅋ')) {
+    e.preventDefault();
+    if (activeAnno) activeAnno.doUndo();
+    else alert('먼저 페이지에 마우스를 올려놓거나 클릭하여 활성화하세요.');
+  } else if (e.key === 'Delete' || e.code === 'Delete' || e.keyCode === 46) {
+    e.preventDefault();
+    if (activeAnno) activeAnno.doClear(true);
+    else alert('먼저 페이지에 마우스를 올려놓거나 클릭하여 활성화하세요.');
+  }
+});
+
+buildSidebar();
+updateChapterTabs();
+
+if (SECTIONS.length > 0) {
+  showSection(0);
+}
+</script>
+</body>
+</html>
