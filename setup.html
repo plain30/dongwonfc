@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>동원FC V11.1 초기설정</title>
+<style>
+body{font-family:Arial,'Noto Sans KR',sans-serif;background:#f3f6fb;margin:0;color:#111827}
+.wrap{max-width:760px;margin:40px auto;padding:24px} .card{background:white;border-radius:18px;padding:26px;box-shadow:0 12px 35px rgba(15,23,42,.1)}
+input,button{width:100%;box-sizing:border-box;font-size:16px;padding:13px 14px;margin:7px 0;border-radius:10px} input{border:1px solid #cbd5e1} button{border:0;background:#2563eb;color:white;font-weight:700;cursor:pointer}
+button.secondary{background:#0f172a} pre{white-space:pre-wrap;background:#0f172a;color:#e2e8f0;padding:15px;border-radius:10px;min-height:44px} .ok{color:#15803d} .warn{color:#b45309}
+</style></head><body><div class="wrap"><div class="card">
+<h1>동원FC V11.1 초기설정</h1>
+<p>현재 Apps Script 웹 앱 주소가 입력되어 있습니다. 먼저 연결 확인 후 관리자 비밀번호를 등록하세요.</p>
+<label>Apps Script 웹 앱 주소</label><input id="url" value="https://script.google.com/macros/s/AKfycbw6qoyv-49RQDp7eaWqo7_y3xSPu_WfWEoWLOt-IFBj-_wBU2I_fXOAZk3xEBL3n-Xwg/exec">
+<button class="secondary" id="checkBtn">서버 연결 확인</button>
+<label>관리자 비밀번호</label><input id="pw" type="password" value="admin2026" autocomplete="new-password">
+<button id="setupBtn">관리자 초기설정 실행</button>
+<pre id="msg">대기 중</pre>
+<p class="warn">초기설정이 이미 완료되었다면 다시 실행하지 않아도 됩니다. 완료 후 로그인 화면으로 이동하세요.</p>
+<p><a href="./index.html">로그인 화면으로 이동</a></p>
+</div></div><script>
+const msg=document.getElementById('msg');
+async function request(payload,method='POST'){
+ const u=document.getElementById('url').value.trim();
+ const opt=method==='GET'?{method:'GET',redirect:'follow'}:{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload),redirect:'follow'};
+ const r=await fetch(u,opt); const t=await r.text(); try{return JSON.parse(t)}catch{throw new Error('서버 응답을 JSON으로 해석하지 못했습니다. 웹 앱 액세스 권한을 모든 사용자로 확인하세요.')}
+}
+document.getElementById('checkBtn').onclick=async()=>{msg.textContent='연결 확인 중...';try{const r=await request(null,'GET');msg.textContent=JSON.stringify(r,null,2)}catch(e){msg.textContent='오류: '+e.message}};
+document.getElementById('setupBtn').onclick=async()=>{msg.textContent='초기설정 중...';try{const r=await request({action:'setup',password:document.getElementById('pw').value});msg.textContent=JSON.stringify(r,null,2)}catch(e){msg.textContent='오류: '+e.message}};
+</script></body></html>
