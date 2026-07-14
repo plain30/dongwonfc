@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function profileExists() {
+      return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+    function me() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+    function isAdmin() {
+      return profileExists() && me().data.role == 'admin';
+    }
+    function myMemberNo() {
+      return profileExists() ? me().data.memberNo : '';
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create, update, delete: if isAdmin();
+    }
+
+    // 로그인 전 이름을 회원 이메일로 변환하기 위한 정확한 해시 1건 조회만 허용합니다.
+    match /loginIndex/{hash} {
+      allow get: if true;
+      allow list: if false;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /settings/{id} {
+      allow read: if profileExists();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /members/{memberNo} {
+      allow read: if isAdmin() || (profileExists() && myMemberNo() == memberNo);
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /auditLogs/{logId} {
+      allow read, create: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
